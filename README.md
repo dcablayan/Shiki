@@ -9,6 +9,20 @@ It works as a full-page overlay on top of the supported AI sites and mirrors
 their state (conversation list, active chat, model name) into the Docs surface.
 Everything runs locally in your browser — no accounts, no servers, no telemetry.
 
+## Why I built it
+
+I saw a project with a similar idea, but simple features were locked behind a
+subscription and, beyond sending a chat, it did not feel useful enough for the
+way I wanted to work. So I built Shiki myself and made it free.
+
+AI is part of the daily workflow now, but AI chat tabs still do not always look
+or feel like focused work. Shiki turns those conversations into a familiar
+Google Docs-style workspace: calmer, more organized, and easier to keep open
+while you think, write, research, or draft.
+
+If you are going to spend all day working with AI anyway, why not make it feel
+like working in Google Docs?
+
 ## Supported sites
 
 - ChatGPT — `chatgpt.com`, `chat.openai.com`
