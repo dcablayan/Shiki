@@ -98,6 +98,15 @@ If a provider updates its page and something looks off, click **Conversation
 sync** in the popup or reload the tab. Your chats remain on the original AI site;
 Shiki only changes the interface in your browser.
 
+## Report a bug
+
+If Shiki breaks, looks weird, or stops syncing on one of the supported sites,
+send a bug report to
+[dylancablayan07@gmail.com](mailto:dylancablayan07@gmail.com?subject=Shiki%20bug%20report).
+
+Please include which site you were using, what happened, and the steps that made
+it happen if you can reproduce it. Screenshots are helpful too.
+
 ## Settings (popup)
 
 - **Docs disguise** — show/hide the skin.
