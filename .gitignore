@@ -7,4 +7,5 @@
 .idea/
 
 # Build artifacts
+dist/
 *.zip

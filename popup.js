@@ -33,7 +33,7 @@ function setStatus(message) {
 toggleButton.addEventListener("click", async () => {
   try {
     const response = await sendToActiveTab({ type: "SHIKI_TOGGLE" });
-    setStatus(response?.enabled ? "Docs skin enabled." : "Docs skin hidden.");
+    setStatus(response?.enabled ? "Docs style enabled." : "Docs style hidden.");
   } catch {
     setStatus("Open ChatGPT, Claude, or Gemini first.");
   }
@@ -107,7 +107,7 @@ chatgptProButton.addEventListener("click", () => {
     const next = result[CHATGPT_PRO_KEY] !== true; // flip current value
     chrome.storage.local.set({ [CHATGPT_PRO_KEY]: next }, () => {
       reflectChatgptPro(next);
-      setStatus(next ? "ChatGPT Pro tiers unlocked." : "ChatGPT Pro tiers hidden.");
+      setStatus(next ? "ChatGPT Pro options shown." : "ChatGPT Pro options hidden.");
       refreshActiveTab();
     });
   });

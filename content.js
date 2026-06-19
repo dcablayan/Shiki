@@ -1169,7 +1169,7 @@
 
     frame = document.createElement("iframe");
     frame.id = FRAME_ID;
-    frame.title = "Docs skin";
+    frame.title = "Docs style";
     frame.src = chrome.runtime.getURL("index.html");
     frame.addEventListener("load", postState);
     document.documentElement.appendChild(frame);
@@ -1698,7 +1698,7 @@
       // the host's reasoning control, best-effort.
       switchEffort(message.picked || message.label || message.effortLevel);
     }
-    if (message.type === "toggle-disguise") {
+    if (message.type === "toggle-docs-style") {
       toggle();
     }
   });

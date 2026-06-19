@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Shiki Docs Skin for AI",
+  "name": "Shiki Docs Style for AI",
   "version": "1",
-  "description": "A Google Docs-style skin for ChatGPT, Claude, and Gemini with conversation-switcher sync.",
+  "description": "A Docs-style workspace for ChatGPT, Claude, and Gemini with conversation-switcher sync.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -13,9 +13,7 @@
     "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; object-src 'none'; base-uri 'none'"
   },
   "permissions": [
-    "activeTab",
-    "storage",
-    "tabs"
+    "storage"
   ],
   "host_permissions": [
     "https://chatgpt.com/*",
@@ -27,7 +25,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Shiki Docs Skin",
+    "default_title": "Shiki Docs Style",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
@@ -56,7 +54,7 @@
         "default": "Ctrl+Shift+D",
         "mac": "Command+Shift+D"
       },
-      "description": "Toggle the Docs skin"
+      "description": "Toggle the Docs style"
     }
   },
   "web_accessible_resources": [

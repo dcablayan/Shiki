@@ -768,7 +768,7 @@
     conversationTitleTargets.forEach((target) => {
       target.textContent = shownTitle;
     });
-    document.title = `${shownTitle} - Google Docs Skin`;
+    document.title = `${shownTitle} - Docs Style`;
     if (documentPage) documentPage.dataset.conversationId = next.id;
 
     renderConversations(conversations, next.id);
@@ -1359,9 +1359,9 @@
       return;
     }
 
-    if (action === "toggle-disguise") {
+    if (action === "toggle-docs-style") {
       flash(control);
-      notifyHost("toggle-disguise");
+      notifyHost("toggle-docs-style");
       event.stopPropagation();
       return;
     }
