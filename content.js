@@ -351,9 +351,17 @@
     const src = img.getAttribute("src") || img.currentSrc || "";
     if (!src) return false;
     if (/^data:image\/svg/i.test(src)) return false; // inline SVGs are almost always icons
+    // Citation/source logos are wrapped in an <a href> to the source. They're never
+    // real content (and the host renders them as tiny favicons), so drop them.
+    if (img.closest("a[href]")) return false;
     const w = img.naturalWidth || img.width || parseInt(img.getAttribute("width") || "0", 10) || 0;
     const h = img.naturalHeight || img.height || parseInt(img.getAttribute("height") || "0", 10) || 0;
     if (w && h && w < MIN_CONTENT_IMAGE && h < MIN_CONTENT_IMAGE) return false;
+    // Some source logos have a large natural size but the host displays them tiny
+    // (e.g. a 128px publisher logo shown at 12px beside a citation). Trust the
+    // on-page render size so they aren't surfaced as full-width content images.
+    const rect = img.getBoundingClientRect();
+    if (rect.width && rect.height && rect.width < MIN_CONTENT_IMAGE && rect.height < MIN_CONTENT_IMAGE) return false;
     if (img.closest('button, [data-testid*="avatar" i], [class*="avatar" i]')) return false;
     return true;
   }
