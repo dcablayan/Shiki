@@ -32,6 +32,14 @@ like working in Google Docs?
 Provider page structures change often, so the adapters are intentionally
 defensive and fall back gracefully when something can't be found.
 
+## Current scope
+
+Shiki v1 is packaged for **Google Chrome on macOS**. It is a local, unpacked
+Chrome extension for now, not a Chrome Web Store install.
+
+It may also work in Chromium-based browsers that support unpacked extensions,
+but macOS Chrome is the supported path for this launch.
+
 ## Features
 
 - **Docs-style surface** — your active conversation rendered as a document, with
@@ -53,19 +61,23 @@ defensive and fall back gracefully when something can't be found.
 - **Load older messages** — scroll to the top of a conversation to pull in
   earlier turns.
 
-## Install (Load unpacked)
+## Install on macOS
 
-1. Download or clone this folder and keep it somewhere permanent (Chrome reads
-   the extension directly from this folder, so don't delete or move it after
-   loading).
-2. Open `chrome://extensions`.
-3. Enable **Developer mode** (top-right toggle).
-4. Click **Load unpacked** and select this folder (the one containing
-   `manifest.json`).
-5. Open a supported AI page and the Docs skin appears.
+1. Download the latest ZIP:
+   [shiki-docs-skin-v1.zip](https://github.com/dcablayan/Shiki/releases/latest/download/shiki-docs-skin-v1.zip).
+2. Double-click the ZIP to unzip it.
+3. Move the unzipped `Shiki` folder somewhere you will keep it, like
+   `Documents` or `Applications`. Chrome reads the extension from this folder,
+   so do not delete it after installing.
+4. Open Google Chrome and go to `chrome://extensions`.
+5. Turn on **Developer mode** in the top-right corner.
+6. Click **Load unpacked**.
+7. Select the unzipped `Shiki` folder. It should be the folder that contains
+   `manifest.json`.
+8. Open ChatGPT, Claude, or Gemini. Shiki should appear automatically.
 
 The skin is enabled by default. Toggle it from the extension popup or with
-`Command+Shift+D` (macOS) / `Ctrl+Shift+D` (Windows/Linux).
+`Command+Shift+D`.
 
 ## Onboarding: first run
 
