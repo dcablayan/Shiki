@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Editor / local tooling
+.claude/
+.vscode/
+.idea/
+
+# Build artifacts
+*.zip
