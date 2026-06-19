@@ -97,8 +97,8 @@ If testing paid-provider-only model options, use an account that already has acc
 
 ## Asset checklist
 
-- 128x128 store icon: existing `icons/icon128.png`, pending brand/IP review.
-- Screenshots: need at least one 1280x800 full-bleed screenshot showing the actual Shiki workspace on a supported AI page.
-- Small promo tile: prepare 440x280 PNG or JPEG if dashboard requires it.
-- Marquee promo tile: optional 1400x560 PNG or JPEG.
+- 128x128 store icon: `store-assets/store-icon-128.png`.
+- Screenshots: `store-assets/screenshot-workspace-1280x800.png` and `store-assets/screenshot-compose-1280x800.png`.
+- Small promo tile: `store-assets/small-promo-440x280.png`.
+- Marquee promo tile: `store-assets/marquee-promo-1400x560.png`.
 - Promotional video: optional unless the dashboard requests one.
