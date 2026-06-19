@@ -1,12 +1,14 @@
 const PROFILE_KEY = "shikiProfileImage";
 const RICH_KEY = "shikiRichFormatting";
 const IMAGE_CONTROL_KEY = "shikiImageControl";
+const CHATGPT_PRO_KEY = "shikiChatgptPro";
 const MAX_AVATAR_BYTES = 1024 * 1024;
 
 const toggleButton = document.getElementById("toggle");
 const syncButton = document.getElementById("sync");
 const formattingButton = document.getElementById("formatting");
 const imageControlButton = document.getElementById("imageControl");
+const chatgptProButton = document.getElementById("chatgptPro");
 const status = document.getElementById("status");
 const pickAvatarButton = document.getElementById("pickAvatar");
 const resetAvatarButton = document.getElementById("resetAvatar");
@@ -86,6 +88,26 @@ imageControlButton.addEventListener("click", () => {
     chrome.storage.local.set({ [IMAGE_CONTROL_KEY]: next }, () => {
       reflectImageControl(next);
       setStatus(next === "insert" ? "Use Insert menu for images." : "Image button in composer.");
+      refreshActiveTab();
+    });
+  });
+});
+
+function reflectChatgptPro(on) {
+  chatgptProButton.textContent = on ? "On" : "Off";
+  chatgptProButton.setAttribute("aria-pressed", String(on));
+}
+
+chrome.storage.local.get({ [CHATGPT_PRO_KEY]: false }, (result) => {
+  reflectChatgptPro(result[CHATGPT_PRO_KEY] === true);
+});
+
+chatgptProButton.addEventListener("click", () => {
+  chrome.storage.local.get({ [CHATGPT_PRO_KEY]: false }, (result) => {
+    const next = result[CHATGPT_PRO_KEY] !== true; // flip current value
+    chrome.storage.local.set({ [CHATGPT_PRO_KEY]: next }, () => {
+      reflectChatgptPro(next);
+      setStatus(next ? "ChatGPT Pro tiers unlocked." : "ChatGPT Pro tiers hidden.");
       refreshActiveTab();
     });
   });

@@ -22,6 +22,9 @@
   const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB per attached photo
   const PROFILE_STORAGE_KEY = "shikiProfileImage";
   const IMAGE_CONTROL_KEY = "shikiImageControl";
+  // ChatGPT's Pro reasoning tiers (Pro · Standard / Extended) are locked behind the
+  // paid Pro plan, so they stay hidden until the user confirms access in the popup.
+  const CHATGPT_PRO_KEY = "shikiChatgptPro";
 
   // Photos staged in the composer; sent with (and cleared on) the next message.
   // Each entry: { id, name, type, dataUrl }.
@@ -90,30 +93,44 @@
   const titleRow = document.querySelector(".tabs-title-row");
 
   // Per-provider models and their reasoning options, per the V2 spec. `efforts`
-  // are the selectable reasoning levels; `toggle` is an independent on/off modifier
-  // the provider exposes alongside them (e.g. extended thinking). The host page
-  // stays the source of truth: the active model is mirrored from it when available
-  // and selections are routed back to the host's real controls.
+  // are the selectable reasoning levels; `proEfforts` are extra levels gated behind
+  // a paid plan that only appear once the user confirms access (see CHATGPT_PRO_KEY);
+  // `toggle` is an independent on/off modifier the provider exposes alongside them
+  // (e.g. extended thinking), and `toggleDefault: true` makes that modifier start ON
+  // for the model. The host page stays the source of truth: the active
+  // model is mirrored from it when available and selections are routed back to the
+  // host's real controls.
   const PROVIDER_MODELS = {
     ChatGPT: [
-      { label: "GPT-5.5", efforts: ["Instant", "Medium", "High", "Extra High", "Pro · Standard", "Pro · Extended"], default: "Instant" },
-      { label: "GPT-5.4", efforts: ["Instant", "Medium", "High", "Extra High", "Pro · Standard", "Pro · Extended"] },
+      { label: "GPT-5.5", efforts: ["Instant", "Medium", "High", "Extra High"], proEfforts: ["Pro · Standard", "Pro · Extended"], default: "Instant" },
+      { label: "GPT-5.4", efforts: ["Instant", "Medium", "High", "Extra High"], proEfforts: ["Pro · Standard", "Pro · Extended"], default: "Instant" },
       { label: "GPT-5.3", efforts: ["Instant"] },
       { label: "GPT-4.5", efforts: ["Instant"] },
       { label: "o3", efforts: ["Medium"] }
     ],
     Claude: [
-      { label: "Opus 4.8", efforts: ["Low", "Medium", "High", "Extra", "Max"], toggle: "Thinking" },
-      { label: "Opus 4.7", efforts: ["Low", "Medium", "High", "Extra", "Max"], toggle: "Extended" },
-      { label: "Opus 4.6", efforts: ["Low", "Medium", "High", "Max"], toggle: "Extended" },
-      { label: "Sonnet 4.6", efforts: ["Low", "Medium", "High", "Max"], toggle: "Thinking", default: "Medium" },
+      // Fable 5 is intentionally omitted until it's publicly available again.
+      // Primary models (host's top-level model menu). `toggle` is the host's
+      // reasoning switch — "Thinking" (optional, "can think for complex tasks") or
+      // "Extended" ("always uses deep reasoning") — and `default` is the level the
+      // host tags as Default in its effort submenu.
+      { label: "Opus 4.8", efforts: ["Low", "Medium", "High", "Extra", "Max"], toggle: "Thinking", toggleDefault: true, default: "High" },
+      { label: "Sonnet 4.6", efforts: ["Low", "Medium", "High", "Max"], toggle: "Thinking", default: "Low" },
       { label: "Haiku 4.5", efforts: [], toggle: "Extended" },
+      // Secondary models (host's "More models" submenu). All verified via screenshots:
+      // 4.7 uses the same levels as 4.8 but defaults to Extra; 4.6 defaults to Medium
+      // with the Extended toggle; Opus 3 has no reasoning controls at all.
+      { label: "Opus 4.7", efforts: ["Low", "Medium", "High", "Extra", "Max"], toggle: "Thinking", toggleDefault: true, default: "Extra" },
+      { label: "Opus 4.6", efforts: ["Low", "Medium", "High", "Max"], toggle: "Extended", toggleDefault: true, default: "Medium" },
       { label: "Opus 3", efforts: [] }
     ],
     Gemini: [
-      { label: "3.1 Pro", efforts: ["Standard", "Extended"] },
-      { label: "3.1 Flash", efforts: ["Standard", "Extended"] },
-      { label: "3.1 Flash Lite", efforts: ["Standard", "Extended"], default: "Standard" }
+      // Menu order matches the host. "Thinking level" is the reasoning control —
+      // Standard ("best for most questions") / Extended ("complex problem solving"),
+      // default Standard — and all three models expose the same two levels.
+      { label: "3.1 Flash-Lite", efforts: ["Standard", "Extended"], default: "Standard" },
+      { label: "3.5 Flash", efforts: ["Standard", "Extended"], default: "Standard" },
+      { label: "3.1 Pro", efforts: ["Standard", "Extended"], default: "Standard" }
     ],
     AI: [
       { label: "Default", efforts: [] }
@@ -125,6 +142,7 @@
   // and is routed to the host best-effort on selection.
   let currentEffortLabel = "";
   let toggleOn = false;
+  let hasProAccess = false;
   let lastModelLabel = "";
 
   function normLabel(value) {
@@ -151,18 +169,36 @@
     return findModelEntry(currentProvider, currentModelLabel());
   }
 
+  // A model's effective reasoning levels: its base efforts plus any Pro-tier levels,
+  // which only unlock once the user confirms paid access (Pro is $200/mo on ChatGPT).
+  function effortsFor(entry) {
+    if (!entry) return [];
+    const base = (entry.efforts || []).slice();
+    if (hasProAccess && entry.proEfforts && entry.proEfforts.length) {
+      return base.concat(entry.proEfforts);
+    }
+    return base;
+  }
+
   // Menu items for a model's reasoning control: its levels plus the toggle (if any).
   function effortItemsFor(entry) {
     if (!entry) return [];
-    const items = (entry.efforts || []).slice();
+    const items = effortsFor(entry);
     if (entry.toggle) items.push(entry.toggle);
     return items;
   }
 
   function defaultEffortFor(entry) {
-    if (!entry || !entry.efforts || !entry.efforts.length) return "";
-    if (entry.default && entry.efforts.includes(entry.default)) return entry.default;
-    return entry.efforts.includes("High") ? "High" : entry.efforts[0];
+    const efforts = effortsFor(entry);
+    if (!efforts.length) return "";
+    if (entry.default && efforts.includes(entry.default)) return entry.default;
+    return efforts.includes("High") ? "High" : efforts[0];
+  }
+
+  // The model's default on/off state for its `toggle` modifier (e.g. some models
+  // ship with extended thinking on). False when the model has no toggle.
+  function defaultToggleFor(entry) {
+    return !!(entry && entry.toggle && entry.toggleDefault);
   }
 
   // Reflect current reasoning state onto the effort control, and disable it for
@@ -171,7 +207,8 @@
     if (!effortButton) return;
     const entry = currentModelEntry();
     const items = effortItemsFor(entry);
-    const hasEfforts = !!(entry && entry.efforts && entry.efforts.length);
+    const efforts = effortsFor(entry);
+    const hasEfforts = efforts.length > 0;
     const hasToggle = !!(entry && entry.toggle);
     const labelSpan = effortButton.querySelector(".control-label");
 
@@ -184,7 +221,7 @@
     }
     effortButton.disabled = false;
 
-    if (hasEfforts && !entry.efforts.includes(currentEffortLabel)) {
+    if (hasEfforts && !efforts.includes(currentEffortLabel)) {
       currentEffortLabel = defaultEffortFor(entry);
     }
     if (!hasEfforts) currentEffortLabel = "";
@@ -198,6 +235,34 @@
     effortButton.setAttribute("aria-label", `Reasoning: ${desc}`);
     effortButton.title = `Reasoning: ${desc}`;
     effortButton.dataset.effortLevel = normLabel(currentEffortLabel);
+  }
+
+  // Pro tiers are skin-gated behind an explicit opt-in (Shiki can't reliably read
+  // the host's plan), so toggling access re-validates the current reasoning level —
+  // a Pro level falls back to the model default when access is turned off.
+  function applyProAccess(value) {
+    const next = !!value;
+    if (next === hasProAccess) return;
+    hasProAccess = next;
+    syncEffortControl();
+  }
+
+  function loadProAccessPreference() {
+    try {
+      if (typeof chrome !== "undefined" && chrome.storage?.local) {
+        chrome.storage.local.get({ [CHATGPT_PRO_KEY]: false }, (result) => {
+          applyProAccess(result[CHATGPT_PRO_KEY] === true);
+        });
+        return;
+      }
+    } catch {
+      /* fall through to localStorage */
+    }
+    try {
+      applyProAccess(localStorage.getItem(CHATGPT_PRO_KEY) === "true");
+    } catch {
+      applyProAccess(false);
+    }
   }
 
   function normalizeImageControl(mode) {
@@ -744,7 +809,7 @@
     if (modelLabelNow !== lastModelLabel) {
       const entry = findModelEntry(currentProvider, modelLabelNow);
       currentEffortLabel = defaultEffortFor(entry);
-      toggleOn = false;
+      toggleOn = defaultToggleFor(entry);
       lastModelLabel = modelLabelNow;
     }
     syncEffortControl();
@@ -1346,7 +1411,7 @@
         // A new model may expose different reasoning options → reset to its default.
         const entry = findModelEntry(currentProvider, label);
         currentEffortLabel = defaultEffortFor(entry);
-        toggleOn = false;
+        toggleOn = defaultToggleFor(entry);
         lastModelLabel = label;
         syncEffortControl();
         notifyHost("select-model", { modelId: modelButton.dataset.modelId, label });
@@ -1537,10 +1602,12 @@
   window.addEventListener("load", () => {
     loadStored();
     loadImageControlPreference();
+    loadProAccessPreference();
     renderConversations(conversations, activeConversationId);
     // Initialise reasoning state for the default model before any host sync.
     lastModelLabel = currentModelLabel();
     currentEffortLabel = defaultEffortFor(currentModelEntry());
+    toggleOn = defaultToggleFor(currentModelEntry());
     syncEffortControl();
     if (promptLine) promptLine.focus({ preventScroll: true });
     setupOverscrollHistoryLoader();
@@ -1551,10 +1618,15 @@
   try {
     if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
       chrome.storage.onChanged.addListener((changes, area) => {
-        if (area !== "local" || !changes[IMAGE_CONTROL_KEY]) return;
-        const mode = normalizeImageControl(changes[IMAGE_CONTROL_KEY].newValue);
-        applyImageControl(mode);
-        lastImageControl = mode;
+        if (area !== "local") return;
+        if (changes[IMAGE_CONTROL_KEY]) {
+          const mode = normalizeImageControl(changes[IMAGE_CONTROL_KEY].newValue);
+          applyImageControl(mode);
+          lastImageControl = mode;
+        }
+        if (changes[CHATGPT_PRO_KEY]) {
+          applyProAccess(changes[CHATGPT_PRO_KEY].newValue === true);
+        }
       });
     }
   } catch {

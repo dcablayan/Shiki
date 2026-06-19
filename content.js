@@ -31,7 +31,7 @@
     },
     "gemini.google.com": {
       name: "Gemini",
-      defaultModel: { id: "3.1-flash-lite", label: "3.1 Flash Lite" },
+      defaultModel: { id: "3.1-flash-lite", label: "3.1 Flash-Lite" },
       conversationPatterns: ["/app/"],
       conversationSelectors: ['a[href*="/app/"]']
     }
@@ -192,8 +192,8 @@
   function extractModel() {
     const config = provider();
     // Recognise current provider model names: GPT-x / o-series (ChatGPT),
-    // Opus/Sonnet/Haiku x.x (Claude), and "x.x Pro/Flash/Flash Lite" (Gemini).
-    const modelPattern = /\b(GPT[-\s]?[\w.]+|o\d(?:[-\s]?\w+)?|Opus\s+[\w.]+|Sonnet\s+[\w.]+|Haiku\s+[\w.]+|\d(?:\.\d)?\s+Flash(?:\s+Lite)?|\d(?:\.\d)?\s+Pro)\b/i;
+    // Opus/Sonnet/Haiku x.x (Claude), and "x.x Flash-Lite/Flash/Pro" (Gemini).
+    const modelPattern = /\b(GPT[-\s]?[\w.]+|o\d(?:[-\s]?\w+)?|Opus\s+[\w.]+|Sonnet\s+[\w.]+|Haiku\s+[\w.]+|\d(?:\.\d)?\s+Flash(?:[-\s]Lite)?|\d(?:\.\d)?\s+Pro)\b/i;
 
     // Read only from the host's model-switcher control, not arbitrary page text.
     for (const selector of modelSelectors()) {
