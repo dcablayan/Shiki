@@ -9,3 +9,11 @@
 # Build artifacts
 dist/
 *.zip
+
+# Xcode (Safari extension wrapper)
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.xcscmblueprint
+*.xccheckout

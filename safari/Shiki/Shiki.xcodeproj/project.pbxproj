@@ -1,0 +1,603 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 110;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4B8D25A72FE60CFA00013BBF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8D25A62FE60CFA00013BBF /* AppDelegate.swift */; };
+		4B8D25AB2FE60CFA00013BBF /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25A92FE60CFA00013BBF /* Main.html */; };
+		4B8D25AD2FE60CFA00013BBF /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25AC2FE60CFA00013BBF /* Icon.png */; };
+		4B8D25AF2FE60CFA00013BBF /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25AE2FE60CFA00013BBF /* Style.css */; };
+		4B8D25B12FE60CFA00013BBF /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25B02FE60CFA00013BBF /* Script.js */; };
+		4B8D25B32FE60CFA00013BBF /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8D25B22FE60CFA00013BBF /* ViewController.swift */; };
+		4B8D25B62FE60CFA00013BBF /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25B42FE60CFA00013BBF /* Main.storyboard */; };
+		4B8D25B82FE60CFC00013BBF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25B72FE60CFC00013BBF /* Assets.xcassets */; };
+		4B8D25BF2FE60CFC00013BBF /* Shiki Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4B8D25BE2FE60CFC00013BBF /* Shiki Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4B8D25C42FE60CFC00013BBF /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8D25C32FE60CFC00013BBF /* SafariWebExtensionHandler.swift */; };
+		4B8D25D82FE60CFC00013BBF /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25D02FE60CFC00013BBF /* popup.js */; };
+		4B8D25D92FE60CFC00013BBF /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25D12FE60CFC00013BBF /* index.html */; };
+		4B8D25DA2FE60CFC00013BBF /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25D22FE60CFC00013BBF /* background.js */; };
+		4B8D25DB2FE60CFC00013BBF /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25D32FE60CFC00013BBF /* popup.html */; };
+		4B8D25DC2FE60CFC00013BBF /* skin.js in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25D42FE60CFC00013BBF /* skin.js */; };
+		4B8D25DD2FE60CFC00013BBF /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25D52FE60CFC00013BBF /* icons */; };
+		4B8D25DE2FE60CFC00013BBF /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25D62FE60CFC00013BBF /* manifest.json */; };
+		4B8D25DF2FE60CFC00013BBF /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = 4B8D25D72FE60CFC00013BBF /* content.js */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4B8D25C02FE60CFC00013BBF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4B8D259B2FE60CFA00013BBF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4B8D25BD2FE60CFC00013BBF;
+			remoteInfo = "Shiki Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4B8D25CB2FE60CFC00013BBF /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				4B8D25BF2FE60CFC00013BBF /* Shiki Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		4B8D25A32FE60CFA00013BBF /* Shiki.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Shiki.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B8D25A62FE60CFA00013BBF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		4B8D25AA2FE60CFA00013BBF /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		4B8D25AC2FE60CFA00013BBF /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		4B8D25AE2FE60CFA00013BBF /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		4B8D25B02FE60CFA00013BBF /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		4B8D25B22FE60CFA00013BBF /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		4B8D25B52FE60CFA00013BBF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		4B8D25B72FE60CFC00013BBF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4B8D25B92FE60CFC00013BBF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4B8D25BE2FE60CFC00013BBF /* Shiki Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Shiki Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B8D25C32FE60CFC00013BBF /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		4B8D25C52FE60CFC00013BBF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4B8D25D02FE60CFC00013BBF /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = Resources/popup.js; sourceTree = "<group>"; };
+		4B8D25D12FE60CFC00013BBF /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = index.html; path = Resources/index.html; sourceTree = "<group>"; };
+		4B8D25D22FE60CFC00013BBF /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = Resources/background.js; sourceTree = "<group>"; };
+		4B8D25D32FE60CFC00013BBF /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = popup.html; path = Resources/popup.html; sourceTree = "<group>"; };
+		4B8D25D42FE60CFC00013BBF /* skin.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = skin.js; path = Resources/skin.js; sourceTree = "<group>"; };
+		4B8D25D52FE60CFC00013BBF /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = Resources/icons; sourceTree = "<group>"; };
+		4B8D25D62FE60CFC00013BBF /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
+		4B8D25D72FE60CFC00013BBF /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = Resources/content.js; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4B8D25A02FE60CFA00013BBF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		4B8D25BB2FE60CFC00013BBF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4B8D259A2FE60CFA00013BBF = {
+			isa = PBXGroup;
+			children = (
+				4B8D25A52FE60CFA00013BBF /* Shiki */,
+				4B8D25C22FE60CFC00013BBF /* Shiki Extension */,
+				4B8D25A42FE60CFA00013BBF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4B8D25A42FE60CFA00013BBF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4B8D25A32FE60CFA00013BBF /* Shiki.app */,
+				4B8D25BE2FE60CFC00013BBF /* Shiki Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4B8D25A52FE60CFA00013BBF /* Shiki */ = {
+			isa = PBXGroup;
+			children = (
+				4B8D25A62FE60CFA00013BBF /* AppDelegate.swift */,
+				4B8D25B22FE60CFA00013BBF /* ViewController.swift */,
+				4B8D25B42FE60CFA00013BBF /* Main.storyboard */,
+				4B8D25B72FE60CFC00013BBF /* Assets.xcassets */,
+				4B8D25B92FE60CFC00013BBF /* Info.plist */,
+				4B8D25A82FE60CFA00013BBF /* Resources */,
+			);
+			path = Shiki;
+			sourceTree = "<group>";
+		};
+		4B8D25A82FE60CFA00013BBF /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4B8D25A92FE60CFA00013BBF /* Main.html */,
+				4B8D25AC2FE60CFA00013BBF /* Icon.png */,
+				4B8D25AE2FE60CFA00013BBF /* Style.css */,
+				4B8D25B02FE60CFA00013BBF /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4B8D25C22FE60CFC00013BBF /* Shiki Extension */ = {
+			isa = PBXGroup;
+			children = (
+				4B8D25CF2FE60CFC00013BBF /* Resources */,
+				4B8D25C32FE60CFC00013BBF /* SafariWebExtensionHandler.swift */,
+				4B8D25C52FE60CFC00013BBF /* Info.plist */,
+			);
+			path = "Shiki Extension";
+			sourceTree = "<group>";
+		};
+		4B8D25CF2FE60CFC00013BBF /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4B8D25D02FE60CFC00013BBF /* popup.js */,
+				4B8D25D12FE60CFC00013BBF /* index.html */,
+				4B8D25D22FE60CFC00013BBF /* background.js */,
+				4B8D25D32FE60CFC00013BBF /* popup.html */,
+				4B8D25D42FE60CFC00013BBF /* skin.js */,
+				4B8D25D52FE60CFC00013BBF /* icons */,
+				4B8D25D62FE60CFC00013BBF /* manifest.json */,
+				4B8D25D72FE60CFC00013BBF /* content.js */,
+			);
+			name = Resources;
+			path = "Shiki Extension";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4B8D25A22FE60CFA00013BBF /* Shiki */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4B8D25CC2FE60CFC00013BBF /* Build configuration list for PBXNativeTarget "Shiki" */;
+			buildPhases = (
+				4B8D259F2FE60CFA00013BBF /* Sources */,
+				4B8D25A02FE60CFA00013BBF /* Frameworks */,
+				4B8D25A12FE60CFA00013BBF /* Resources */,
+				4B8D25CB2FE60CFC00013BBF /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4B8D25C12FE60CFC00013BBF /* PBXTargetDependency */,
+			);
+			name = Shiki;
+			productName = Shiki;
+			productReference = 4B8D25A32FE60CFA00013BBF /* Shiki.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4B8D25BD2FE60CFC00013BBF /* Shiki Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4B8D25C82FE60CFC00013BBF /* Build configuration list for PBXNativeTarget "Shiki Extension" */;
+			buildPhases = (
+				4B8D25BA2FE60CFC00013BBF /* Sources */,
+				4B8D25BB2FE60CFC00013BBF /* Frameworks */,
+				4B8D25BC2FE60CFC00013BBF /* Resources */,
+			);
+			buildRules = (
+			);
+			name = "Shiki Extension";
+			productName = "Shiki Extension";
+			productReference = 4B8D25BE2FE60CFC00013BBF /* Shiki Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4B8D259B2FE60CFA00013BBF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					4B8D25A22FE60CFA00013BBF = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					4B8D25BD2FE60CFC00013BBF = {
+						CreatedOnToolsVersion = 27.0;
+					};
+				};
+			};
+			buildConfigurationList = 4B8D259E2FE60CFA00013BBF /* Build configuration list for PBXProject "Shiki" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4B8D259A2FE60CFA00013BBF;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4B8D25A42FE60CFA00013BBF /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4B8D25A22FE60CFA00013BBF /* Shiki */,
+				4B8D25BD2FE60CFC00013BBF /* Shiki Extension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4B8D25A12FE60CFA00013BBF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+				4B8D25AD2FE60CFA00013BBF /* Icon.png in Resources */,
+				4B8D25B62FE60CFA00013BBF /* Main.storyboard in Resources */,
+				4B8D25B12FE60CFA00013BBF /* Script.js in Resources */,
+				4B8D25AB2FE60CFA00013BBF /* Main.html in Resources */,
+				4B8D25B82FE60CFC00013BBF /* Assets.xcassets in Resources */,
+				4B8D25AF2FE60CFA00013BBF /* Style.css in Resources */,
+			);
+		};
+		4B8D25BC2FE60CFC00013BBF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+				4B8D25DF2FE60CFC00013BBF /* content.js in Resources */,
+				4B8D25DC2FE60CFC00013BBF /* skin.js in Resources */,
+				4B8D25DE2FE60CFC00013BBF /* manifest.json in Resources */,
+				4B8D25D82FE60CFC00013BBF /* popup.js in Resources */,
+				4B8D25DB2FE60CFC00013BBF /* popup.html in Resources */,
+				4B8D25DD2FE60CFC00013BBF /* icons in Resources */,
+				4B8D25DA2FE60CFC00013BBF /* background.js in Resources */,
+				4B8D25D92FE60CFC00013BBF /* index.html in Resources */,
+			);
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4B8D259F2FE60CFA00013BBF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+				4B8D25B32FE60CFA00013BBF /* ViewController.swift in Sources */,
+				4B8D25A72FE60CFA00013BBF /* AppDelegate.swift in Sources */,
+			);
+		};
+		4B8D25BA2FE60CFC00013BBF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+				4B8D25C42FE60CFC00013BBF /* SafariWebExtensionHandler.swift in Sources */,
+			);
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4B8D25C12FE60CFC00013BBF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4B8D25BD2FE60CFC00013BBF /* Shiki Extension */;
+			targetProxy = 4B8D25C02FE60CFC00013BBF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		4B8D25A92FE60CFA00013BBF /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B8D25AA2FE60CFA00013BBF /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		4B8D25B42FE60CFA00013BBF /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B8D25B52FE60CFA00013BBF /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		4B8D25C62FE60CFC00013BBF /* Debug configuration for PBXProject "Shiki" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4B8D25C72FE60CFC00013BBF /* Release configuration for PBXProject "Shiki" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		4B8D25C92FE60CFC00013BBF /* Debug configuration for PBXNativeTarget "Shiki Extension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Shiki Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Shiki Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MARKETING_VERSION = 1.1;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.shiki.docsstyle.Extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4B8D25CA2FE60CFC00013BBF /* Release configuration for PBXNativeTarget "Shiki Extension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Shiki Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Shiki Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MARKETING_VERSION = 1.1;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.shiki.docsstyle.Extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		4B8D25CD2FE60CFC00013BBF /* Debug configuration for PBXNativeTarget "Shiki" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Shiki/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Shiki;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.shiki.docsstyle;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4B8D25CE2FE60CFC00013BBF /* Release configuration for PBXNativeTarget "Shiki" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Shiki/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Shiki;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.shiki.docsstyle;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4B8D259E2FE60CFA00013BBF /* Build configuration list for PBXProject "Shiki" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4B8D25C62FE60CFC00013BBF /* Debug configuration for PBXProject "Shiki" */,
+				4B8D25C72FE60CFC00013BBF /* Release configuration for PBXProject "Shiki" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		4B8D25C82FE60CFC00013BBF /* Build configuration list for PBXNativeTarget "Shiki Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4B8D25C92FE60CFC00013BBF /* Debug configuration for PBXNativeTarget "Shiki Extension" */,
+				4B8D25CA2FE60CFC00013BBF /* Release configuration for PBXNativeTarget "Shiki Extension" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		4B8D25CC2FE60CFC00013BBF /* Build configuration list for PBXNativeTarget "Shiki" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4B8D25CD2FE60CFC00013BBF /* Debug configuration for PBXNativeTarget "Shiki" */,
+				4B8D25CE2FE60CFC00013BBF /* Release configuration for PBXNativeTarget "Shiki" */,
+			);
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4B8D259B2FE60CFA00013BBF /* Project object */;
+	validationLevel = 1;
+}

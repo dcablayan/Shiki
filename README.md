@@ -34,11 +34,14 @@ defensive and fall back gracefully when something can't be found.
 
 ## Current scope
 
-Shiki v1 is packaged for **Google Chrome** and prepped for Chrome Web Store
-launch.
+Shiki v1 is packaged for **Google Chrome** (prepped for Chrome Web Store launch)
+and for **Safari on macOS** via a native Web Extension wrapper.
 
-It may also work in Chromium-based browsers, but Chrome is the supported path for
-this launch.
+The Chrome and Safari builds ship the exact same extension code — the JS, HTML,
+and `manifest.json` are identical files, and Safari aliases the `chrome.*` APIs.
+The Safari build lives in [`safari/`](safari/README.md); see that README for how
+to build, run, and distribute it. It may also work in other Chromium-based
+browsers, but Chrome and Safari are the supported paths.
 
 ## Features
 
@@ -146,12 +149,20 @@ ones the AI site itself makes.
 | `skin.js` | Overlay logic (rendering, sending, attachments, settings) |
 | `popup.html` / `popup.js` | Toolbar popup settings |
 | `icons/` | Extension icons |
+| `safari/` | Safari Web Extension Xcode project (macOS) — see [`safari/README.md`](safari/README.md) |
+
+The root files above are the single source of truth. The Safari project bundles
+copies of them under `safari/Shiki/Shiki Extension/Resources/`; run
+`./scripts/sync-safari-resources.sh` after editing any root file to keep the
+Safari build in sync.
 
 ## Packaging a release
 
-To produce a distributable zip from the current sources:
+To produce a distributable zip of the Chrome extension from the current sources:
 
 ```sh
 zip -r shiki-docs-style.zip manifest.json background.js content.js index.html \
   skin.js popup.html popup.js icons
 ```
+
+For Safari, build/archive the Xcode project in `safari/` (see its README).
