@@ -2,6 +2,11 @@
 
 Last reviewed: June 19, 2026.
 
+Launch note: Safari installation is documented through the local, unsigned
+Safari Web Extension conversion flow. No paid Apple Developer Program account or
+Safari App Store distribution is planned for this path. The official Chrome Web
+Store download is coming soon, estimated late June 2026.
+
 ## Official requirements checked
 
 - Chrome Web Store Program Policies: https://developer.chrome.com/docs/webstore/program-policies/policies

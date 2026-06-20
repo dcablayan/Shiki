@@ -1,6 +1,6 @@
 # Shiki - Docs Style for AI Chat
 
-Shiki is a Chrome extension that reskins AI chat pages to look and feel like a
+Shiki is a browser extension that reskins AI chat pages to look and feel like a
 Docs-style document. Your conversation becomes the document body, the chat list
 becomes a document sidebar, and replies are rendered as clean, formatted prose.
 
@@ -34,14 +34,21 @@ defensive and fall back gracefully when something can't be found.
 
 ## Current scope
 
-Shiki v1 is packaged for **Google Chrome** (prepped for Chrome Web Store launch)
-and for **Safari on macOS** via a native Web Extension wrapper.
+Shiki v1 is packaged for **Google Chrome** and **Safari on macOS** from the same
+WebExtension source tree:
 
-The Chrome and Safari builds ship the exact same extension code — the JS, HTML,
+- **Safari on macOS** is available now through Apple's local, unsigned Safari
+  Web Extension flow. No paid Apple Developer Program account is required for
+  the supported local install path. See
+  [Safari installation](docs/safari-install.md) and
+  [`safari/`](safari/README.md).
+- **Google Chrome** support is prepped for Chrome Web Store launch. The official
+  Chrome Web Store download is coming soon, estimated late June 2026.
+
+The Chrome and Safari builds ship the exact same extension code -- the JS, HTML,
 and `manifest.json` are identical files, and Safari aliases the `chrome.*` APIs.
-The Safari build lives in [`safari/`](safari/README.md); see that README for how
-to build, run, and distribute it. It may also work in other Chromium-based
-browsers, but Chrome and Safari are the supported paths.
+It may also work in other Chromium-based browsers, but Chrome and Safari are the
+supported paths for this launch.
 
 ## Features
 
@@ -66,7 +73,38 @@ browsers, but Chrome and Safari are the supported paths.
 
 ## Install
 
-Install Shiki from the Chrome Web Store once the listing is live, then open
+### Safari on macOS
+
+Safari installation currently uses the checked-in Xcode wrapper in `safari/`.
+You need macOS, Safari, and Xcode, but you do not need a paid Apple Developer
+Program account.
+
+1. Clone or download this repo.
+2. From the repo root, sync the shared extension files into the Safari wrapper:
+
+   ```sh
+   ./scripts/sync-safari-resources.sh
+   ```
+
+3. Open the Safari project:
+
+   ```sh
+   open safari/Shiki/Shiki.xcodeproj
+   ```
+
+4. In Xcode, run the Shiki macOS app. If Xcode asks about signing, use local
+   signing for your Mac; App Store distribution and the $99 Apple Developer
+   Program are not needed for this install path.
+5. In Safari, enable unsigned extensions for local testing, then enable Shiki in
+   Safari's Extensions settings and grant access to the supported AI sites.
+
+For the full Safari walkthrough, see
+[docs/safari-install.md](docs/safari-install.md).
+
+### Chrome
+
+The official Chrome Web Store download is coming soon, estimated late June 2026.
+After the listing is live, install Shiki from the Chrome Web Store, then open
 ChatGPT, Claude, or Gemini. Shiki should appear automatically.
 
 The style is enabled by default. Toggle it from the extension popup or with
@@ -74,9 +112,10 @@ The style is enabled by default. Toggle it from the extension popup or with
 
 ## Onboarding: first run
 
-After installing Shiki, pin it in Chrome so the toggle and settings stay easy to
-reach. Then open ChatGPT, Claude, or Gemini and start from any existing or new
-conversation. Shiki will turn the chat into a document view automatically.
+After installing Shiki, pin it or keep it visible in your browser toolbar so the
+toggle and settings stay easy to reach. Then open ChatGPT, Claude, or Gemini and
+start from any existing or new conversation. Shiki will turn the chat into a
+document view automatically.
 
 1. Open a supported AI site and sign in normally.
 2. Wait for the Docs-style surface to appear over the page.
@@ -124,8 +163,8 @@ via text nodes only -- raw page HTML is never injected into the overlay.
 
 Everything stays in your browser. Shiki has no backend and sends no data
 anywhere. Your settings (enabled state, profile picture, pins, renames) are
-stored with Chrome's local extension storage. The only network requests are the
-ones the AI site itself makes.
+stored with your browser's local extension storage. The only network requests
+are the ones the AI site itself makes.
 
 ## Limitations
 
@@ -161,8 +200,9 @@ Safari build in sync.
 To produce a distributable zip of the Chrome extension from the current sources:
 
 ```sh
-zip -r shiki-docs-style.zip manifest.json background.js content.js index.html \
-  skin.js popup.html popup.js icons
+./scripts/package-webstore.sh
 ```
 
-For Safari, build/archive the Xcode project in `safari/` (see its README).
+For Safari, use the local Xcode wrapper in `safari/`. The supported no-fee path
+is building and running it locally with unsigned extensions enabled; a paid Apple
+Developer Program account is not required for that path.

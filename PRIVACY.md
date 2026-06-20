@@ -2,7 +2,7 @@
 
 Last updated: June 19, 2026
 
-Shiki is a Chrome extension from Lapetus Software that changes the local interface of supported AI chat websites. It has no Shiki account system, backend, analytics, ads, or telemetry.
+Shiki is a browser extension from Lapetus Software that changes the local interface of supported AI chat websites. It has no Shiki account system, backend, analytics, ads, or telemetry.
 
 ## Data Shiki handles
 
@@ -18,9 +18,9 @@ For example, Shiki reads the current page to render your conversation, sends pro
 
 ## Storage
 
-Shiki stores settings and local-only organization data in Chrome's local extension storage on your device. If you set a custom profile picture, that image is also stored locally in Chrome extension storage.
+Shiki stores settings and local-only organization data in your browser's local extension storage on your device. If you set a custom profile picture, that image is also stored locally in browser extension storage.
 
-Uninstalling the extension removes its Chrome extension storage. You can also reset the custom profile picture from the extension popup.
+Uninstalling the extension removes that browser's extension storage. You can also reset the custom profile picture from the extension popup.
 
 ## Network and sharing
 
@@ -36,7 +36,7 @@ Shiki works on ChatGPT, Claude, and Gemini pages. Those services are operated by
 
 ## Limited Use statement
 
-Shiki's use of information received from Chrome extension permissions adheres to the Chrome Web Store User Data Policy, including the Limited Use requirements. Shiki uses data only to provide or improve its single purpose, does not transfer user data except as needed to perform user-requested actions on the supported AI site, does not use user data for advertising, and does not allow humans to read user data except if required by law or with explicit user consent for support.
+For Chrome distribution, Shiki's use of information received from Chrome extension permissions adheres to the Chrome Web Store User Data Policy, including the Limited Use requirements. Shiki uses data only to provide or improve its single purpose, does not transfer user data except as needed to perform user-requested actions on the supported AI site, does not use user data for advertising, and does not allow humans to read user data except if required by law or with explicit user consent for support.
 
 ## Contact
 

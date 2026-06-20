@@ -5,6 +5,12 @@ Chrome. Safari extensions must be embedded in a native app and built with Xcode,
 so this directory holds an Xcode project (`Shiki/Shiki.xcodeproj`) whose
 extension target bundles the repo's extension sources.
 
+This is the supported no-fee Safari install path. You do not need a paid Apple
+Developer Program account to clone the repo, build locally in Xcode, and enable
+Shiki as an unsigned Safari extension.
+
+The official Chrome Web Store download is coming soon, estimated late June 2026.
+
 The extension behaves identically to the Chrome build — the JavaScript, HTML,
 and `manifest.json` are byte-for-byte the same files. Safari aliases the
 `chrome.*` extension APIs, so no code changes were needed.
@@ -49,40 +55,15 @@ The toolbar popup and the `⌘⇧D` toggle work the same as in Chrome. (Custom
 keyboard shortcuts in Safari may need to be confirmed under Safari → Settings →
 Extensions.)
 
-## Distribution
+## Distribution note
 
-> **There is no zero-cost "download and double-click" path for Safari.** Unlike
-> Chrome, every Safari extension ships inside a macOS app, and Safari will only
-> load an extension from an app that is **signed with a Developer ID certificate
-> and notarized by Apple** — both of which require the
-> [Apple Developer Program](https://developer.apple.com/programs/) ($99/yr).
->
-> Without that membership, an app downloaded from a website or GitHub is blocked
-> by Gatekeeper, and Safari refuses to load its extension unless the user enables
-> *Develop → Allow Unsigned Extensions* (which resets on every Safari restart).
-> That is a development aid, not a distribution method.
+Shiki is not currently distributed as a signed Safari download or Mac App Store
+app. Unlike Chrome, Safari Web Extensions ship inside macOS apps, and a normal
+public download requires paid Apple signing and notarization. That is not the
+plan for this no-fee Safari path.
 
-### Realistic options today (no paid account)
-
-- **Build it yourself / for technical users:** anyone with Xcode can clone the
-  repo and follow "Build & run locally" above. This is the only no-cost way for
-  someone else to run Shiki in Safari.
-
-### When you enroll in the Apple Developer Program
-
-Two real distribution paths open up:
-
-- **Direct download (GitHub / your website):** archive the **Shiki** scheme
-  (Product → Archive), export with a **Developer ID Application** certificate,
-  **notarize** with `xcrun notarytool submit --wait`, **staple** with
-  `xcrun stapler staple`, then wrap the `.app` in a `.dmg` or `.zip`. Users
-  download it, drag it to Applications, open it once, and enable Shiki in
-  Safari → Settings → Extensions. This is the "download and run" experience.
-- **Mac App Store:** archive and submit through App Store Connect. Easiest trust
-  (no Gatekeeper prompt) but goes through review and isn't hosted on your site.
-
-In every case the extension ships **off** — each user enables it once in
-Safari → Settings → Extensions and grants per-site access on first use.
+For Safari, users should clone the repo, build the checked-in Xcode project
+locally, enable unsigned extensions, and grant per-site access on first use.
 
 ## Regenerating the project
 
