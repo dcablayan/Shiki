@@ -168,7 +168,10 @@
       return ['[data-testid="model-selector-dropdown"]', 'button[aria-haspopup="listbox"]', 'button[aria-label*="model" i]'];
     }
     if (host.includes("gemini")) {
-      return ['.logo-pill-label-container', 'button[aria-label*="model" i]', '[class*="model" i] button'];
+      // Gemini's "mode picker" button (Material) is the trigger; its visible pill
+      // only shows an abbreviated name ("Flash-Lite"). The aria-label-based
+      // selectors target the real button; the pill div is a last-resort fallback.
+      return ['button[aria-label*="mode picker" i]', 'button[aria-label*="currently" i]', '.logo-pill-label-container'];
     }
     return [];
   }
@@ -215,6 +218,22 @@
           return { id: label.toLowerCase().replace(/[^a-z0-9.]+/g, "-"), label };
         }
         return config.defaultModel;
+      }
+    }
+
+    // Gemini's collapsed pill shows an ABBREVIATED mode ("Flash-Lite"/"Flash"/
+    // "Pro") with no version, which the version-requiring regex can't match. The
+    // mode-picker button's aria-label ("…currently Flash") is the reliable source;
+    // map the short name back to the full model label.
+    if (host.includes("gemini")) {
+      const btn = document.querySelector('button[aria-label*="mode picker" i]')
+        || document.querySelector('button[aria-label*="currently" i]');
+      const m = btn && (btn.getAttribute("aria-label") || "").match(/currently\s+(.+)$/i);
+      if (m) {
+        const short = m[1].trim();
+        const map = { "flash-lite": "3.1 Flash-Lite", "flash": "3.5 Flash", "pro": "3.1 Pro" };
+        const label = map[short.toLowerCase()] || short;
+        return { id: label.toLowerCase().replace(/[^a-z0-9.]+/g, "-"), label };
       }
     }
 
@@ -1738,14 +1757,24 @@
     return Array.from(document.querySelectorAll('[role="menuitem"], [role="option"], [role="menuitemradio"]'));
   }
 
-  // Open a portal menu trigger / commit a selection. Modern hosts (ChatGPT's Radix
-  // menus, etc.) open and select on the pointer sequence, not a bare click — a
-  // synthetic `.click()` alone does nothing — so we fire the full sequence.
+  // Hover-open a trigger/submenu WITHOUT clicking. Hosts disagree on what opens a
+  // menu: ChatGPT's Radix menu opens on pointerdown, Claude's Base UI submenus open
+  // on MOUSE hover (mouseover/enter/move), Gemini's Material button opens on click.
+  // So fire both the mouse- and pointer-hover families here, but deliberately do
+  // NOT click — a click after a pointerdown-open toggles Claude's menu back closed.
+  // Callers fall back to .click() only when hovering didn't open the menu.
+  function hoverOpen(el) {
+    if (!el) return;
+    ["mouseover", "mouseenter", "mousemove"].forEach((t) =>
+      el.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window })));
+    ["pointerover", "pointermove", "pointerenter", "pointerdown", "pointerup"].forEach((t) =>
+      el.dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "mouse" })));
+  }
+
+  // Commit a selection on a leaf option: hover to focus it, then click to choose.
   function pressEl(el) {
     if (!el) return;
-    el.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
-    el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-    el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+    hoverOpen(el);
     el.click();
   }
 
@@ -1798,38 +1827,60 @@
     }
     // Open the host's model control, then click the matching option. The menu is a
     // portal that can render slowly and often nests the model list one level deep
-    // (ChatGPT puts it behind the current-model row inside the effort menu), so we
-    // poll instead of a single timed shot, opening a model submenu when the target
-    // isn't directly visible. Self-closes (Escape) when nothing matches.
+    // (ChatGPT behind the current-model row, Claude behind "More models"), so we
+    // poll rather than fire a single timed shot. Each tick does ONE thing: ensure
+    // the menu is open, click the target if visible, or open a model submenu.
+    // Self-closes (Escape) when nothing matches.
     const trigger = modelSelectors().map((sel) => document.querySelector(sel)).find(Boolean);
     if (!trigger) {
       postState();
       return;
     }
-    pressEl(trigger);
+    hoverOpen(trigger);
 
     let tries = 0;
+    let clickedTrigger = false;
+    // Tracks submenu rows we've tried to open: "hovered" first, then a one-shot
+    // click fallback for menus (ChatGPT) that don't open on hover.
+    const subState = new Map();
     const attempt = () => {
       tries += 1;
+      if (tries > 14) {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        window.setTimeout(postState, 300);
+        return;
+      }
+      // 1) Make sure the menu actually opened. Some triggers (Gemini's Material
+      // button) need a real click; try that once, then fall back to re-hovering.
+      if (!menuOptions().length) {
+        if (!clickedTrigger) {
+          clickedTrigger = true;
+          trigger.click();
+        } else {
+          hoverOpen(trigger);
+        }
+        window.setTimeout(attempt, 180);
+        return;
+      }
+      // 2) Click the target model as soon as it's visible.
       if (clickMatchingOption(label)) {
         window.setTimeout(postState, 400);
         return;
       }
-      // Target not visible yet — open the nested model list if there's a submenu
-      // trigger that isn't already expanded, then keep polling.
+      // 3) Target not visible yet — open the nested model submenu. Hover first;
+      // if it didn't expand by the next pass, click it once.
       const sub = modelSubmenuTrigger();
-      if (sub && sub.getAttribute("aria-expanded") !== "true") {
-        pressEl(sub);
-        window.setTimeout(attempt, 180);
-        return;
+      if (sub) {
+        const state = subState.get(sub);
+        if (!state) {
+          hoverOpen(sub);
+          subState.set(sub, "hovered");
+        } else if (state === "hovered") {
+          if (sub.getAttribute("aria-expanded") !== "true") sub.click();
+          subState.set(sub, "clicked");
+        }
       }
-      if (tries < 10) {
-        window.setTimeout(attempt, 180);
-        return;
-      }
-      // Give up: close the menu so the host UI isn't left open, then resync.
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-      window.setTimeout(postState, 300);
+      window.setTimeout(attempt, 180);
     };
     window.setTimeout(attempt, 180);
   }
