@@ -32,7 +32,7 @@ Shiki does not allow Lapetus Software or any Shiki operator to read your convers
 
 ## Third-party services
 
-Shiki works on ChatGPT, Claude, and Gemini pages. Those services are operated by their respective providers and are governed by their own terms and privacy policies. Shiki does not control how those services process data you enter into their websites.
+Shiki works only on the supported AI chat domains declared by the extension: `chatgpt.com`, `chat.openai.com`, `claude.ai`, and `gemini.google.com`. Those services are operated by their respective providers and are governed by their own terms and privacy policies. Shiki does not control how those services process data you enter into their websites.
 
 ## Limited Use statement
 

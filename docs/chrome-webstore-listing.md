@@ -10,7 +10,7 @@ Shiki - AI Chat Document View
 
 Short description:
 
-Turn ChatGPT, Claude, and Gemini conversations into a focused document workspace in your browser.
+Turn supported AI chat pages into a focused document workspace in your browser.
 
 Category:
 
@@ -38,7 +38,7 @@ https://github.com/dcablayan/Shiki/blob/main/PRIVACY.md
 
 ## Detailed description
 
-Shiki turns supported AI chat pages into a focused document workspace directly in Chrome. It overlays ChatGPT, Claude, and Gemini with a clean writing surface, conversation sidebar, rich message formatting, image support, and local-only chat organization.
+Shiki turns supported AI chat pages into a focused document workspace directly in Chrome. It adds a clean writing surface, conversation sidebar, rich message formatting, image support, and local-only chat organization while the original site stays underneath.
 
 Core features:
 
@@ -50,9 +50,9 @@ Core features:
 - Pin, rename, or hide chats locally without modifying or deleting anything on the AI provider.
 - Store preferences locally in Chrome.
 
-Shiki has no account system, backend, analytics, ads, or telemetry. It runs in the browser and uses supported AI websites only when the user opens those websites.
+Shiki has no account system, backend, analytics, ads, or telemetry. It runs in the browser and works only when the user opens a supported AI chat site.
 
-Shiki is published by Lapetus Software. It is not affiliated with, endorsed by, or sponsored by OpenAI, Anthropic, Google, ChatGPT, Claude, or Gemini. ChatGPT is a trademark of OpenAI. Claude is a trademark of Anthropic. Gemini is a trademark of Google LLC. Use of these marks is for compatibility description only.
+Shiki is published by Lapetus Software. It is independent software and is not affiliated with, endorsed by, or sponsored by any supported AI chat provider.
 
 ## Privacy tab
 

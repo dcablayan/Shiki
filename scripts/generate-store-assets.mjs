@@ -174,7 +174,7 @@ const screenshotOne = shikiPreviewDocument("Shiki screenshot workspace", {
             { runs: [{ bold: true, text: "Assets: " }, { text: "attach screenshots, promo tiles, and the detective-hat icon." }] }
           ]
         },
-        { type: "code", lang: "text", text: "permissions: storage\nhosts: chatgpt.com, claude.ai, gemini.google.com" }
+        { type: "code", lang: "text", text: "permissions: storage\nhosts: supported AI chat pages" }
       ]
     },
     {
@@ -244,7 +244,7 @@ const marqueePromo = htmlDocument("Shiki marquee promo", 1400, 560, `
 <div class="promo">
   <div class="content">
     <span class="mark">${hatMark(176)}</span>
-    <div><h1>Shiki Docs Style</h1><p>Turn ChatGPT, Claude, and Gemini conversations into a calm document workspace with rich formatting, image support, and local organization.</p></div>
+    <div><h1>Shiki Docs Style</h1><p>Turn supported AI chats into a calm document workspace with rich formatting, image support, and local organization.</p></div>
   </div>
 </div>`);
 

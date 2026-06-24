@@ -158,7 +158,11 @@
   function modelSelectors() {
     const host = location.hostname;
     if (host.includes("chatgpt") || host.includes("openai")) {
-      return ['[data-testid="model-switcher-dropdown-button"]', '[data-testid*="model-switcher" i]', 'button[aria-label*="model" i]'];
+      // ChatGPT folds the model picker into the composer's effort pill: opening it
+      // shows the reasoning levels plus a current-model row that expands the model
+      // list. The pill carries no testid/aria-label, but its class is stable. Older
+      // top-bar switcher selectors are kept as fallbacks.
+      return ['button.__composer-pill', '[data-testid="model-switcher-dropdown-button"]', '[data-testid*="model-switcher" i]'];
     }
     if (host.includes("claude")) {
       return ['[data-testid="model-selector-dropdown"]', 'button[aria-haspopup="listbox"]', 'button[aria-label*="model" i]'];
@@ -191,6 +195,29 @@
 
   function extractModel() {
     const config = provider();
+    const host = location.hostname;
+
+    // ChatGPT no longer shows the model name in a top-bar switcher: the composer
+    // pill shows the effort ("Instant") plus a model badge ("5.4") ONLY when a
+    // non-default model is picked. So read the badge; its absence means the default
+    // model. This is the only reliable closed-menu read for ChatGPT.
+    if (host.includes("chatgpt") || host.includes("openai")) {
+      const pill = document.querySelector("button.__composer-pill");
+      if (pill) {
+        const badge = Array.from(pill.querySelectorAll("span"))
+          .map((s) => cleanText(s.textContent || "").trim())
+          .find((t) => /^(o\d|\d\.\d|gpt[-\s]?[\d.]+)$/i.test(t));
+        if (badge) {
+          let label;
+          if (/^o\d$/i.test(badge)) label = badge.toLowerCase();
+          else if (/^gpt/i.test(badge)) label = "GPT-" + badge.replace(/^gpt[-\s]?/i, "");
+          else label = "GPT-" + badge;
+          return { id: label.toLowerCase().replace(/[^a-z0-9.]+/g, "-"), label };
+        }
+        return config.defaultModel;
+      }
+    }
+
     // Recognise current provider model names: GPT-x / o-series (ChatGPT),
     // Opus/Sonnet/Haiku x.x (Claude), and "x.x Flash-Lite/Flash/Pro" (Gemini).
     const modelPattern = /\b(GPT[-\s]?[\w.]+|o\d(?:[-\s]?\w+)?|Opus\s+[\w.]+|Sonnet\s+[\w.]+|Haiku\s+[\w.]+|\d(?:\.\d)?\s+Flash(?:[-\s]Lite)?|\d(?:\.\d)?\s+Pro)\b/i;
@@ -215,6 +242,37 @@
     const label = match ? match[1][0].toUpperCase() + match[1].slice(1).toLowerCase() : "High";
 
     return { level: label.toLowerCase(), label };
+  }
+
+  // While the model is replying, each host swaps its send button for a "stop"
+  // control. That's the most reliable cross-provider "is generating" signal, so
+  // we surface it to the skin to drive the thinking animation. Specific selectors
+  // first, then a guarded generic fallback for when a provider's DOM shifts.
+  function generatingSelectors() {
+    const host = location.hostname;
+    if (host.includes("chatgpt") || host.includes("openai")) {
+      return ['button[data-testid="stop-button"]', 'button[aria-label="Stop streaming"]', 'button[aria-label*="stop" i]'];
+    }
+    if (host.includes("claude")) {
+      return ['button[aria-label="Stop response"]', 'button[data-testid="stop-button"]', 'button[aria-label*="stop" i]'];
+    }
+    if (host.includes("gemini")) {
+      return ['button[aria-label*="stop" i]', 'button.stop', 'button.send-button.stop'];
+    }
+    return ['button[aria-label*="stop" i]'];
+  }
+
+  function isElementVisible(el) {
+    if (!el || el.disabled || el.getAttribute("aria-disabled") === "true") return false;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  function detectGenerating() {
+    for (const selector of generatingSelectors()) {
+      if (isElementVisible(safeQuery(selector))) return true;
+    }
+    return false;
   }
 
   function messageNodes() {
@@ -1120,6 +1178,7 @@
       profileImage,
       richFormatting,
       imageControl,
+      generating: detectGenerating(),
       historyLoading,
       historyHasMore,
       conversationsLoading,
@@ -1206,9 +1265,49 @@
     setEnabled(!enabled);
   }
 
+  // Mutation-driven sync: the fixed-interval poll alone meant the document only
+  // caught up to ~1.5s-old host state, so streaming replies looked choppy and
+  // laggy. A MutationObserver on the host page pushes state the moment its DOM
+  // changes, throttled so a burst of streaming mutations collapses into ~5 fast,
+  // cheap syncs per second (skin.js no-ops when nothing actually changed). The
+  // interval stays on as a heartbeat for state that doesn't mutate the DOM
+  // (model/effort changes) and as a safety net if a mutation is ever missed.
+  let observer = null;
+  let observerSyncQueued = false;
+  let lastObserverSync = 0;
+  const OBSERVER_MIN_GAP_MS = 200;
+
+  function requestSync() {
+    if (observerSyncQueued || !enabled) return;
+    observerSyncQueued = true;
+    const wait = Math.max(0, OBSERVER_MIN_GAP_MS - (Date.now() - lastObserverSync));
+    window.setTimeout(() => {
+      observerSyncQueued = false;
+      lastObserverSync = Date.now();
+      if (enabled) postState();
+    }, wait);
+  }
+
+  function startObserver() {
+    if (observer || !document.body) return;
+    // Attributes are excluded on purpose: class/style churn is the noisiest
+    // source of mutations and irrelevant here. Streaming text (characterData),
+    // new turns, and the stop button toggling are all childList/characterData.
+    observer = new MutationObserver(requestSync);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+
+  function stopObserver() {
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+  }
+
   function startSync() {
     stopSync();
     syncTimer = window.setInterval(postState, SYNC_INTERVAL_MS);
+    startObserver();
   }
 
   function stopSync() {
@@ -1216,6 +1315,7 @@
       window.clearInterval(syncTimer);
       syncTimer = 0;
     }
+    stopObserver();
   }
 
   // The actual in-page sidebar anchor for a conversation, matched by href or by
@@ -1626,17 +1726,69 @@
     location.assign(newChatUrl());
   }
 
-  function clickMatchingOption(labelText) {
-    const norm = String(labelText || "").toLowerCase().replace(/\s+/g, "");
-    if (!norm) return false;
-    const options = document.querySelectorAll('[role="menuitem"], [role="option"], [role="menuitemradio"]');
-    const match = Array.from(options).find((option) =>
-      (option.textContent || "").toLowerCase().replace(/\s+/g, "").includes(norm));
-    if (match) {
-      match.click();
-      return true;
+  // Normalise a label/option to comparable text: lowercase, keep only letters,
+  // digits and dots. This collapses hyphen/space/dash variants ("GPT-5.4",
+  // "GPT 5.4", "GPT‑5.4" with a non-breaking hyphen) to one form while keeping the
+  // dot so "5.4" and "5.5" stay distinct.
+  function normOption(value) {
+    return String(value || "").toLowerCase().replace(/[^a-z0-9.]/g, "");
+  }
+
+  function menuOptions() {
+    return Array.from(document.querySelectorAll('[role="menuitem"], [role="option"], [role="menuitemradio"]'));
+  }
+
+  // Open a portal menu trigger / commit a selection. Modern hosts (ChatGPT's Radix
+  // menus, etc.) open and select on the pointer sequence, not a bare click — a
+  // synthetic `.click()` alone does nothing — so we fire the full sequence.
+  function pressEl(el) {
+    if (!el) return;
+    el.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+    el.click();
+  }
+
+  // A menu row that opens a NESTED list of models rather than being a model itself.
+  // Covers ChatGPT (the row is the *current* model name, e.g. "GPT-5.5 ❯", which
+  // expands the full model list) and "More/Legacy/Other models" rows on other hosts.
+  function modelSubmenuTrigger() {
+    return menuOptions().find((el) =>
+      el.getAttribute("aria-haspopup") === "menu"
+      && /gpt[-\s]?\d|opus|sonnet|haiku|gemini|\bo\d\b|more models|legacy models|other models|older models/i
+        .test((el.textContent || "").trim()));
+  }
+
+  // Pick the option that best matches `labelText`. Prefer an exact label match,
+  // then a row whose text STARTS WITH the label, then a loose substring — each pass
+  // scans every option so a description line never beats the real model row, and
+  // ties break to the shortest text so plain "GPT-5.5" wins over "GPT-5.5 Thinking".
+  // Submenu triggers (aria-haspopup) are excluded so we never click the row that
+  // merely *opens* the model list instead of a real model.
+  function findMatchingOption(labelText) {
+    const norm = normOption(labelText);
+    if (!norm) return null;
+    const scored = menuOptions()
+      .filter((el) => el.getAttribute("aria-haspopup") !== "menu")
+      .map((el) => ({ el, text: normOption(el.textContent) }))
+      .filter((o) => o.text);
+    const byShortest = (a, b) => a.text.length - b.text.length;
+    const passes = [
+      scored.filter((o) => o.text === norm),
+      scored.filter((o) => o.text.startsWith(norm)),
+      scored.filter((o) => o.text.includes(norm))
+    ];
+    for (const pass of passes) {
+      if (pass.length) return pass.sort(byShortest)[0].el;
     }
-    return false;
+    return null;
+  }
+
+  function clickMatchingOption(labelText) {
+    const match = findMatchingOption(labelText);
+    if (!match) return false;
+    pressEl(match);
+    return true;
   }
 
   function switchModel(label) {
@@ -1644,21 +1796,42 @@
       postState();
       return;
     }
-    // Best-effort: open the host's model switcher, then click the matching option.
-    // Provider DOMs change often, so this is forgiving and self-closes (Escape)
-    // when no match is found.
+    // Open the host's model control, then click the matching option. The menu is a
+    // portal that can render slowly and often nests the model list one level deep
+    // (ChatGPT puts it behind the current-model row inside the effort menu), so we
+    // poll instead of a single timed shot, opening a model submenu when the target
+    // isn't directly visible. Self-closes (Escape) when nothing matches.
     const trigger = modelSelectors().map((sel) => document.querySelector(sel)).find(Boolean);
     if (!trigger) {
       postState();
       return;
     }
-    trigger.click();
-    window.setTimeout(() => {
-      if (!clickMatchingOption(label)) {
-        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    pressEl(trigger);
+
+    let tries = 0;
+    const attempt = () => {
+      tries += 1;
+      if (clickMatchingOption(label)) {
+        window.setTimeout(postState, 400);
+        return;
       }
+      // Target not visible yet — open the nested model list if there's a submenu
+      // trigger that isn't already expanded, then keep polling.
+      const sub = modelSubmenuTrigger();
+      if (sub && sub.getAttribute("aria-expanded") !== "true") {
+        pressEl(sub);
+        window.setTimeout(attempt, 180);
+        return;
+      }
+      if (tries < 10) {
+        window.setTimeout(attempt, 180);
+        return;
+      }
+      // Give up: close the menu so the host UI isn't left open, then resync.
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       window.setTimeout(postState, 300);
-    }, 220);
+    };
+    window.setTimeout(attempt, 180);
   }
 
   function switchEffort(label) {

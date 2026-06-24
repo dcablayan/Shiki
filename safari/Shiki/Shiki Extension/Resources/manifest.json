@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Shiki Docs Style for AI",
-  "version": "1.1",
-  "description": "A Docs-style workspace for ChatGPT, Claude, and Gemini with conversation-switcher sync.",
+  "version": "1.2",
+  "description": "A Docs-style workspace for supported AI chat pages with conversation-switcher sync.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",

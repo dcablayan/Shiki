@@ -35,7 +35,7 @@ toggleButton.addEventListener("click", async () => {
     const response = await sendToActiveTab({ type: "SHIKI_TOGGLE" });
     setStatus(response?.enabled ? "Docs style enabled." : "Docs style hidden.");
   } catch {
-    setStatus("Open ChatGPT, Claude, or Gemini first.");
+    setStatus("Open a supported AI chat site first.");
   }
 });
 

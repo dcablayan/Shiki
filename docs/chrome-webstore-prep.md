@@ -1,6 +1,6 @@
 # Chrome Web Store Prep
 
-Last reviewed: June 19, 2026.
+Last reviewed: June 20, 2026.
 
 Launch note: Safari installation is documented through the local, unsigned
 Safari Web Extension conversion flow. No paid Apple Developer Program account or
@@ -18,6 +18,27 @@ Store download is coming soon, estimated late June 2026.
 - Listing images: https://developer.chrome.com/docs/webstore/images
 - Branding guidelines: https://developer.chrome.com/docs/webstore/branding
 - Tabs API permissions: https://developer.chrome.com/docs/extensions/reference/api/tabs
+- Keyword spam guidance: https://developer.chrome.com/docs/webstore/troubleshooting/#keyword-stuffing
+- Spam policy FAQ: https://developer.chrome.com/docs/webstore/program-policies/spam-faq#keyword-spam
+
+## Rejection follow-up: Yellow Argon
+
+The June 20, 2026 Chrome Web Store rejection identified keyword spam in the item
+description and flagged the brand/company list in the affiliation disclaimer.
+For resubmission, keep the public description focused on Shiki's functionality,
+avoid lists of company or service names, and put exact supported hosts only in
+permission justifications and reviewer test instructions where they add direct
+context.
+
+Applied compliance changes:
+
+- Removed the flagged affiliation sentence from the Store Listing description.
+- Replaced public summary/description wording with "supported AI chat pages"
+  instead of listing service names.
+- Bumped the Chrome package to `1.1.1` so the package summary can be uploaded
+  with the corrected metadata.
+- Updated promo copy so promotional images do not list supported services as
+  standalone keywords.
 
 ## Current infra comparison
 
@@ -26,7 +47,7 @@ Store download is coming soon, estimated late June 2026.
 | Manifest version | `manifest_version: 3` | Required for new Chrome Web Store extension submissions. | Good. |
 | Background | MV3 service worker in `background.js`. | Reviewable and self-contained. | Good. |
 | Remote code | No remote JS, no `eval`, no `Function`, no `importScripts`. `index.html` loads packaged `skin.js`. | MV3 prohibits remotely hosted executable logic; image resources are allowed when not executable logic. | Good. Declare "No remote code" in dashboard. |
-| Permissions | Now only `"storage"` plus scoped host permissions for ChatGPT, Claude, and Gemini. | Minimum-permission policy favors narrow permissions. Removed unneeded `activeTab` and `tabs`; `chrome.tabs.query()` and `tabs.sendMessage()` can be used without the `tabs` permission when not querying sensitive tab fields. | Done. |
+| Permissions | Now only `"storage"` plus scoped host permissions for the supported AI chat hosts. | Minimum-permission policy favors narrow permissions. Removed unneeded `activeTab` and `tabs`; `chrome.tabs.query()` and `tabs.sendMessage()` can be used without the `tabs` permission when not querying sensitive tab fields. | Done. |
 | Host permissions | Scoped to `chatgpt.com`, `chat.openai.com`, `claude.ai`, `gemini.google.com`. | Narrower than broad host patterns. Still sensitive because the extension reads page content on those sites. | Keep and justify clearly. |
 | User data | Reads conversation/page content locally; stores settings/profile image/pins/aliases locally; sends prompts/images to the AI site's own composer only on user action. | Because the extension handles website content/user-generated content locally, a privacy policy is still required. | Added `PRIVACY.md`; use `https://github.com/dcablayan/Shiki/blob/main/PRIVACY.md` once pushed. |
 | Network | No Shiki backend, telemetry, ads, or analytics. May render HTTPS images already present on the AI page. | Privacy policy and dashboard disclosures must not say "no network" absolutely. | Covered in `PRIVACY.md`. |

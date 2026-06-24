@@ -16,6 +16,11 @@
   const avatarInput = document.querySelector("[data-avatar-input]");
   const composerAttach = document.querySelector(".composer-attach");
   const insertMenuItem = document.querySelector("[data-menu-insert]");
+  // "Thinking…" indicator shown between the transcript and composer while the
+  // model is working. `optimisticThinkingUntil` keeps it up for a short window
+  // right after the user sends, before the host's generating signal arrives.
+  const thinkingEl = document.querySelector("[data-thinking]");
+  let optimisticThinkingUntil = 0;
 
   // Photo limits: avatars are tiny (header circle); attached photos can be larger.
   const MAX_AVATAR_BYTES = 1024 * 1024; // 1 MB
@@ -876,6 +881,8 @@
     if (hostCaughtUp) {
       selectConversation(state.conversation || state.activeConversationId || activeConversationId, { silent: true });
     }
+
+    reflectGenerating(!!state.generating);
   }
 
   // Only http(s)/mailto links are turned into anchors; anything else (javascript:,
@@ -1073,12 +1080,275 @@
     if (gallery.childNodes.length) wrap.appendChild(gallery);
   }
 
+  // ---- Markdown for user prompts --------------------------------------------
+  // Assistant turns are reverse-engineered from the host's rendered HTML, but the
+  // host shows the user's own message as verbatim text. So we parse that raw text
+  // into the SAME block AST the assistant path uses, letting user prompts render
+  // as a formatted document too. Output flows through renderBlocks (text nodes
+  // only), so untrusted marks can never become live markup.
+
+  // str[i] === "[" → { text, url, end } for a [label](url) link, else null.
+  function mdMatchLink(str, i) {
+    if (str[i] !== "[") return null;
+    let depth = 0;
+    let j = i;
+    for (; j < str.length; j++) {
+      const ch = str[j];
+      if (ch === "\\") { j++; continue; }
+      if (ch === "[") depth++;
+      else if (ch === "]") { depth--; if (depth === 0) break; }
+    }
+    if (j >= str.length || str[j] !== "]" || str[j + 1] !== "(") return null;
+    const text = str.slice(i + 1, j);
+    let url = "";
+    let paren = 1;
+    let k = j + 2;
+    for (; k < str.length; k++) {
+      const ch = str[k];
+      if (ch === "\\") { url += str[k + 1] || ""; k++; continue; }
+      if (ch === "(") { paren++; url += ch; continue; }
+      if (ch === ")") { paren--; if (paren === 0) break; url += ch; continue; }
+      url += ch;
+    }
+    if (k >= str.length || str[k] !== ")") return null;
+    url = url.trim().replace(/\s+"[^"]*"$/, "").replace(/\s+'[^']*'$/, "").trim();
+    return { text, url, end: k + 1 };
+  }
+
+  // Next occurrence of `delim` that can close an emphasis span (no whitespace
+  // immediately before it), honoring backslash escapes.
+  function mdFindClosing(str, from, delim) {
+    let k = from;
+    while (k < str.length) {
+      if (str[k] === "\\") { k += 2; continue; }
+      if (str.startsWith(delim, k)) {
+        const before = str[k - 1];
+        if (before === " " || before === "\t" || before === undefined) { k++; continue; }
+        return k;
+      }
+      k++;
+    }
+    return -1;
+  }
+
+  // Tokenise inline markdown (code, links, bold, italic, strike) into runs. Code
+  // spans are literal; emphasis recurses so a bold span can hold an italic one.
+  function inlineToRuns(str, marks) {
+    marks = marks || {};
+    const out = [];
+    let buf = "";
+    const flush = () => { if (buf) { out.push({ ...marks, text: buf }); buf = ""; } };
+    let i = 0;
+    const n = str.length;
+    while (i < n) {
+      const c = str[i];
+      if (c === "\\" && i + 1 < n && /[\\`*_~[\]()#+\-.!>]/.test(str[i + 1])) {
+        buf += str[i + 1]; i += 2; continue;
+      }
+      if (c === "`") {
+        let ticks = 1;
+        while (str[i + ticks] === "`") ticks++;
+        const fence = "`".repeat(ticks);
+        const end = str.indexOf(fence, i + ticks);
+        if (end !== -1) {
+          flush();
+          out.push({ ...marks, code: true, text: str.slice(i + ticks, end).replace(/^ (.*) $/, "$1") });
+          i = end + ticks; continue;
+        }
+      }
+      if (c === "!" && str[i + 1] === "[") {
+        const m = mdMatchLink(str, i + 1);
+        if (m) { flush(); out.push({ ...marks, text: m.text || m.url }); i = m.end; continue; }
+      }
+      if (c === "[") {
+        const m = mdMatchLink(str, i);
+        if (m) {
+          flush();
+          const href = isSafeHref(m.url) ? m.url : null;
+          out.push(...inlineToRuns(m.text, href ? { ...marks, href } : marks));
+          i = m.end; continue;
+        }
+      }
+      if ((c === "*" && str[i + 1] === "*") || (c === "_" && str[i + 1] === "_")) {
+        const end = mdFindClosing(str, i + 2, c + c);
+        if (end !== -1 && end > i + 2 && str[i + 2] !== " ") {
+          flush();
+          out.push(...inlineToRuns(str.slice(i + 2, end), { ...marks, bold: true }));
+          i = end + 2; continue;
+        }
+      }
+      if (c === "~" && str[i + 1] === "~") {
+        const end = mdFindClosing(str, i + 2, "~~");
+        if (end !== -1 && end > i + 2 && str[i + 2] !== " ") {
+          flush();
+          out.push(...inlineToRuns(str.slice(i + 2, end), { ...marks, strike: true }));
+          i = end + 2; continue;
+        }
+      }
+      if (c === "*" || c === "_") {
+        const intraword = c === "_"
+          && /[A-Za-z0-9]/.test(str[i - 1] || "")
+          && /[A-Za-z0-9]/.test(str[i + 1] || "");
+        if (!intraword && str[i + 1] !== " " && str[i + 1] !== c) {
+          const end = mdFindClosing(str, i + 1, c);
+          if (end !== -1 && end > i + 1) {
+            flush();
+            out.push(...inlineToRuns(str.slice(i + 1, end), { ...marks, italic: true }));
+            i = end + 1; continue;
+          }
+        }
+      }
+      buf += c; i++;
+    }
+    flush();
+    return out;
+  }
+
+  function mdListMarker(line) {
+    return line.match(/^(\s*)([-*+]|\d{1,9}[.)])\s+(.*)$/);
+  }
+
+  function mdSplitRow(line) {
+    const s = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+    const cells = [];
+    let cur = "";
+    for (let k = 0; k < s.length; k++) {
+      if (s[k] === "\\" && s[k + 1] === "|") { cur += "|"; k++; continue; }
+      if (s[k] === "|") { cells.push(cur); cur = ""; continue; }
+      cur += s[k];
+    }
+    cells.push(cur);
+    return cells.map((cell) => cell.trim());
+  }
+
+  function mdParseTable(lines, start) {
+    const header = mdSplitRow(lines[start]).map((cell) => inlineToRuns(cell, {}));
+    const rows = [];
+    let i = start + 2;
+    const n = lines.length;
+    while (i < n && lines[i].trim() && lines[i].includes("|")) {
+      rows.push(mdSplitRow(lines[i]).map((cell) => inlineToRuns(cell, {})));
+      i++;
+    }
+    return { block: { type: "table", header, rows }, next: i };
+  }
+
+  function mdParseList(lines, start, depth) {
+    const items = [];
+    let i = start;
+    const n = lines.length;
+    const first = mdListMarker(lines[i]);
+    const baseIndent = first[1].length;
+    const ordered = /\d/.test(first[2]);
+    while (i < n) {
+      const line = lines[i];
+      if (!line.trim()) {
+        const nm = mdListMarker(lines[i + 1] || "");
+        if (nm && nm[1].length >= baseIndent) { i++; continue; }
+        break;
+      }
+      const m = mdListMarker(line);
+      if (!m) break;
+      const indent = m[1].length;
+      if (indent < baseIndent) break;
+      if (indent >= baseIndent + 2 && items.length && depth < 4) {
+        const sub = mdParseList(lines, i, depth + 1);
+        const li = items[items.length - 1];
+        (li.sublists = li.sublists || []).push(sub.block);
+        i = sub.next; continue;
+      }
+      let content = m[3];
+      i++;
+      while (i < n && lines[i].trim() && !mdListMarker(lines[i])
+        && lines[i].match(/^(\s*)/)[1].length > baseIndent) {
+        content += "\n" + lines[i].trim(); i++;
+      }
+      items.push({ runs: inlineToRuns(content, {}) });
+    }
+    return { block: { type: "list", ordered, items }, next: i };
+  }
+
+  function parseUserMarkdown(text, depth) {
+    depth = depth || 0;
+    const src = String(text == null ? "" : text).replace(/\r\n?/g, "\n");
+    if (!src.trim()) return [];
+    const lines = src.split("\n");
+    const blocks = [];
+    let i = 0;
+    const n = lines.length;
+    while (i < n && blocks.length < 800) {
+      const line = lines[i];
+      if (!line.trim()) { i++; continue; }
+
+      const fence = line.match(/^(\s{0,3})(`{3,}|~{3,})(.*)$/);
+      if (fence) {
+        const marker = fence[2][0];
+        const closeRe = new RegExp("^\\s*" + (marker === "`" ? "`{3,}" : "~{3,}") + "\\s*$");
+        const lang = (fence[3] || "").trim().split(/\s+/)[0].replace(/[^\w+#.-]/g, "");
+        i++;
+        const code = [];
+        while (i < n && !closeRe.test(lines[i])) { code.push(lines[i]); i++; }
+        if (i < n) i++;
+        blocks.push({ type: "code", lang, text: code.join("\n") });
+        continue;
+      }
+
+      const h = line.match(/^(\s{0,3})(#{1,6})\s+(.*?)\s*#*\s*$/);
+      if (h) { blocks.push({ type: "h", level: h[2].length, runs: inlineToRuns(h[3], {}) }); i++; continue; }
+
+      if (/^\s{0,3}([-*_])\s*(\1\s*){2,}$/.test(line)) { blocks.push({ type: "hr" }); i++; continue; }
+
+      if (/^\s{0,3}>/.test(line) && depth < 6) {
+        const quote = [];
+        while (i < n && /^\s{0,3}>/.test(lines[i])) { quote.push(lines[i].replace(/^\s{0,3}>\s?/, "")); i++; }
+        const inner = parseUserMarkdown(quote.join("\n"), depth + 1);
+        if (inner.length) blocks.push({ type: "quote", blocks: inner });
+        continue;
+      }
+
+      if (line.includes("|") && i + 1 < n
+        && /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)+\|?\s*$/.test(lines[i + 1])) {
+        const table = mdParseTable(lines, i);
+        if (table.block.header.length) { blocks.push(table.block); i = table.next; continue; }
+      }
+
+      if (mdListMarker(line)) {
+        const list = mdParseList(lines, i, 0);
+        if (list.block.items.length) blocks.push(list.block);
+        i = list.next;
+        continue;
+      }
+
+      const para = [];
+      while (i < n && lines[i].trim()
+        && !/^(\s{0,3})(`{3,}|~{3,})/.test(lines[i])
+        && !/^(\s{0,3})#{1,6}\s+/.test(lines[i])
+        && !/^\s{0,3}>/.test(lines[i])
+        && !/^\s{0,3}([-*_])\s*(\1\s*){2,}$/.test(lines[i])
+        && !mdListMarker(lines[i])) {
+        para.push(lines[i]); i++;
+      }
+      const runs = inlineToRuns(para.join("\n"), {});
+      if (runs.length) blocks.push({ type: "p", runs });
+    }
+    return blocks;
+  }
+
   function fillMessageNode(wrap, role, item) {
     wrap.textContent = "";
-    const blocks = item && item.blocks;
+    let blocks = item && item.blocks;
+    // User prompts arrive as raw text; parse their markdown into the block model
+    // so they render formatted like replies (honoring the plain-text toggle).
+    if (!blocks && role === "user" && lastRichMode !== false) {
+      const raw = item && typeof item === "object" ? (item.text || "") : String(item || "");
+      blocks = parseUserMarkdown(raw);
+    }
     const useBlocks = lastRichMode !== false && blocks && blocks.length;
     if (useBlocks) {
       renderBlocks(wrap, role, blocks);
+      // Assistant images ride along as image blocks; the user's attached photos
+      // are carried separately, so append them after the parsed text.
+      if (role === "user") appendMessageImages(wrap, item);
       return;
     }
     const text = item && typeof item === "object" ? (item.text || "") : String(item || "");
@@ -1176,6 +1446,48 @@
 
   function nearBottom(scroller, threshold = 140) {
     return scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < threshold;
+  }
+
+  // Show/hide the animated "Thinking…" indicator. When it first appears and the
+  // reader is already at the bottom, keep them pinned there so it stays visible.
+  function setThinking(on) {
+    if (!thinkingEl) return;
+    const want = !!on;
+    const wasHidden = thinkingEl.hidden;
+    thinkingEl.hidden = !want;
+    if (want && wasHidden) {
+      const scroller = document.querySelector(".editor-body");
+      if (scroller && nearBottom(scroller)) {
+        requestAnimationFrame(() => { scroller.scrollTop = scroller.scrollHeight; });
+      }
+    }
+  }
+
+  // A blinking caret trailing the streaming reply, placed at the end of the last
+  // assistant turn while the model is actively emitting text.
+  function updateStreamingCaret(active) {
+    if (!documentContent) return;
+    documentContent.querySelectorAll(".stream-caret").forEach((el) => el.remove());
+    if (!active) return;
+    const last = documentContent.lastElementChild;
+    if (!last || last.dataset.author !== "assistant") return;
+    const host = last.lastElementChild || last;
+    const caret = document.createElement("span");
+    caret.className = "stream-caret";
+    caret.setAttribute("aria-hidden", "true");
+    host.appendChild(caret);
+  }
+
+  // Reflect the host's generating state: dots while the model is thinking (no
+  // visible reply yet), then a streaming caret once tokens start arriving.
+  function reflectGenerating(generating) {
+    const last = renderedMessages[renderedMessages.length - 1];
+    const assistantReplying = !!(last && last.author === "assistant"
+      && ((last.text && last.text.trim()) || (last.blocks && last.blocks.length)));
+    const optimistic = Date.now() < optimisticThinkingUntil;
+    setThinking((generating || optimistic) && !assistantReplying);
+    updateStreamingCaret(generating && assistantReplying);
+    if (!generating && assistantReplying) optimisticThinkingUntil = 0;
   }
 
   // Reconcile the transcript against host state instead of clearing + rebuilding
@@ -1311,6 +1623,10 @@
     appendMessage("user", text, images);
     promptLine.textContent = "";
     clearAttachments();
+    // Show the thinking indicator immediately; the host's generating signal takes
+    // over once it arrives (and keeps it accurate for sends made on the host too).
+    optimisticThinkingUntil = Date.now() + 6000;
+    reflectGenerating(false);
     pendingSendNeedle = text ? text.replace(/\s+/g, " ").trim().slice(0, 18).toLowerCase() : "";
     notifyHost("submit-prompt", {
       text,

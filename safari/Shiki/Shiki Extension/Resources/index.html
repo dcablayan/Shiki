@@ -1066,20 +1066,35 @@
       color: #202124;
     }
 
-    /* User prompts: light grey fill + italic; kept flat and understated. */
+    /* User prompts: light grey fill, kept flat and understated. Plain prose stays
+       italic (the original feel); formatted blocks render upright so headings,
+       code, lists, and tables read cleanly. */
     .document-transcript .msg[data-author="user"] {
       margin: 0 0 22px;
       padding: 12px 16px;
       background: #f4f5f6;
       color: #3c4043;
-      font-style: italic;
       box-shadow: inset 0 0 0 1px rgba(60, 64, 67, 0.07);
     }
 
     .document-transcript .msg[data-author="user"] p {
       margin: 0 0 10px;
       font-weight: 400;
+      font-style: italic;
       color: inherit;
+    }
+
+    /* Keep code, headings, and table cells upright even inside an italic prompt. */
+    .document-transcript .msg[data-author="user"] .doc-inline-code,
+    .document-transcript .msg[data-author="user"] .doc-code-block,
+    .document-transcript .msg[data-author="user"] .doc-h,
+    .document-transcript .msg[data-author="user"] th,
+    .document-transcript .msg[data-author="user"] td {
+      font-style: normal;
+    }
+
+    .document-transcript .msg[data-author="user"] > .doc-h:first-child {
+      margin-top: 0;
     }
 
     .document-transcript .msg[data-author="user"] p:last-child {
@@ -1372,6 +1387,84 @@
       49%,
       100% {
         opacity: 0;
+      }
+    }
+
+    /* "Thinking…" indicator: shown where the next reply will appear while the
+       model is working but hasn't emitted visible text yet. */
+    .doc-thinking {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      max-width: 1040px;
+      margin: 2px 0 22px;
+      color: #5f6368;
+      font-size: 16px;
+    }
+
+    .doc-thinking[hidden] {
+      display: none;
+    }
+
+    .doc-thinking-dots {
+      display: inline-flex;
+      gap: 5px;
+    }
+
+    .doc-thinking-dots i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #1a73e8;
+      display: block;
+      animation: shiki-think 1.2s ease-in-out infinite;
+    }
+
+    .doc-thinking-dots i:nth-child(2) {
+      animation-delay: 0.18s;
+    }
+
+    .doc-thinking-dots i:nth-child(3) {
+      animation-delay: 0.36s;
+    }
+
+    @keyframes shiki-think {
+      0%, 80%, 100% {
+        transform: translateY(0);
+        opacity: 0.35;
+      }
+
+      40% {
+        transform: translateY(-5px);
+        opacity: 1;
+      }
+    }
+
+    .doc-thinking-label {
+      font-style: italic;
+    }
+
+    /* Blinking caret trailing the live reply while tokens stream in. */
+    .stream-caret {
+      display: inline-block;
+      width: 0.5em;
+      height: 1.05em;
+      margin-left: 2px;
+      vertical-align: -0.16em;
+      border-radius: 1px;
+      background: #1a73e8;
+      animation: blink 1.05s steps(1, end) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .doc-thinking-dots i {
+        animation: none;
+        opacity: 0.6;
+      }
+
+      .stream-caret {
+        animation: none;
+        opacity: 0.7;
       }
     }
 
@@ -1713,6 +1806,10 @@
         <article class="document-page" data-conversation-id="current" aria-label="Conversation document">
           <div class="doc-content">
             <section class="document-transcript" data-document-content></section>
+            <div class="doc-thinking" data-thinking hidden role="status" aria-live="polite">
+              <span class="doc-thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="doc-thinking-label">Thinking…</span>
+            </div>
             <div class="composer">
               <div class="composer-attachments" data-attachments hidden></div>
               <div class="composer-row">
@@ -1732,6 +1829,6 @@
     </section>
   </main>
 
-  <script src="skin.js?v=22"></script>
+  <script src="skin.js?v=23"></script>
 </body>
 </html>
