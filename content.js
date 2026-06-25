@@ -52,10 +52,27 @@
   let conversationsLoading = false;
   let conversationsHasMore = true;
 
-  // Cache of converted image sources (blob:/tainted → data: URL). `imageCacheVersion`
-  // bumps when a conversion lands so memoized message blocks re-walk and pick it up.
+  // Cache of converted image sources (blob:/tainted -> data: URL). The cache is
+  // bounded because data URLs are base64-expanded strings and can otherwise pin a
+  // lot of tab memory in image-heavy chats.
+  const IMAGE_CACHE_MAX_ENTRIES = 24;
+  const IMAGE_CACHE_MAX_BYTES = 24 * 1024 * 1024;
+  const IMAGE_CACHE_MAX_ITEM_BYTES = 4 * 1024 * 1024;
+  const IMAGE_CONVERT_MAX_SOURCE_BYTES = 8 * 1024 * 1024;
+  const IMAGE_CONVERT_MAX_EDGE = 1600;
+  const IMAGE_CONVERT_MAX_PIXELS = 2560000;
+  const IMAGE_CONVERT_MAX_IN_FLIGHT = 6;
+  const IMAGE_CONVERT_TIMEOUT_MS = 10000;
+  const IMAGE_CONVERT_JPEG_QUALITY = 0.86;
+  const IMAGE_CACHE_MAX_DROPPED_SOURCES = 100;
   const imageDataCache = new Map();
+  const imageDataCacheBytes = new Map();
+  const droppedImageSources = new Set();
   const imageConverting = new Set();
+  let imageDataCacheTotalBytes = 0;
+  let imageCacheGeneration = 0;
+  // `imageCacheVersion` bumps when a conversion lands so memoized message blocks
+  // re-walk and pick it up.
   let imageCacheVersion = 0;
 
   function provider() {
@@ -294,20 +311,35 @@
     return false;
   }
 
-  function messageNodes() {
+  function messageNodeSelectors() {
     const host = location.hostname;
-    let nodes = [];
-
     if (host.includes("chatgpt") || host.includes("openai")) {
-      nodes = Array.from(document.querySelectorAll("[data-message-author-role]"));
-    } else if (host.includes("claude")) {
-      nodes = Array.from(document.querySelectorAll(
-        '[data-testid="user-message"], [data-testid="assistant-message"], .font-claude-message'
-      ));
-    } else if (host.includes("gemini")) {
-      nodes = Array.from(document.querySelectorAll("user-query, model-response"));
+      return ["[data-message-author-role]"];
     }
+    if (host.includes("claude")) {
+      return ['[data-testid="user-message"]', '[data-testid="assistant-message"]', ".font-claude-message"];
+    }
+    if (host.includes("gemini")) {
+      return ["user-query", "model-response"];
+    }
+    return [];
+  }
 
+  function messageNodes() {
+    let nodes = [];
+    const seen = new Set();
+    messageNodeSelectors().forEach((selector) => {
+      try {
+        Array.from(document.querySelectorAll(selector)).forEach((node) => {
+          if (!seen.has(node)) {
+            seen.add(node);
+            nodes.push(node);
+          }
+        });
+      } catch {
+        /* ignore selector drift */
+      }
+    });
     if (!nodes.length) {
       nodes = Array.from(document.querySelectorAll(
         '[data-message-author-role], [data-testid="user-message"], [data-testid="assistant-message"], user-query, model-response'
@@ -315,6 +347,28 @@
     }
 
     return nodes;
+  }
+
+  function closestMessageNode(value) {
+    const selectors = messageNodeSelectors();
+    if (!selectors.length || !value) return null;
+    const selector = selectors.join(", ");
+    let node = value.nodeType === 1 ? value : value.parentElement;
+    while (node && node.nodeType === 1) {
+      try {
+        if (node.matches(selector)) return node;
+      } catch {
+        return null;
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  function markMessageDirtyForNode(value) {
+    const node = closestMessageNode(value);
+    if (node) dirtyMessageNodes.add(node);
+    else forceFullMessageScan = true;
   }
 
   function detectAuthor(node, index) {
@@ -342,7 +396,14 @@
   // builds DOM from it via textContent — raw host HTML is never forwarded.
   const BLOCK_CAP = 600; // max blocks per message (defensive)
   const RUN_CAP = 6000; // max inline runs per block (defensive)
-  const blockCache = new WeakMap(); // node -> { len, blocks }; skips re-walking unchanged turns
+  const MESSAGE_SCAN_TAIL_COUNT = 8;
+  const MESSAGE_FULL_RECONCILE_MS = 15000;
+  let blockCache = new WeakMap(); // node -> { len, blocks }; skips re-walking unchanged turns
+  let messageCache = new WeakMap(); // node -> { author, richFormatting, message }
+  let dirtyMessageNodes = new WeakSet();
+  let forceFullMessageScan = true;
+  let lastFullMessageScan = 0;
+  let lastStateConversationKey = "";
 
   // Search inside shadow roots (Gemini and other web components often hide the
   // rendered markdown there; a flat querySelector misses it).
@@ -443,14 +504,87 @@
     return true;
   }
 
+  function dataUrlBytes(dataUrl) {
+    return String(dataUrl || "").length;
+  }
+
+  function trimImageDataCache() {
+    let evicted = false;
+    while (imageDataCache.size > IMAGE_CACHE_MAX_ENTRIES || imageDataCacheTotalBytes > IMAGE_CACHE_MAX_BYTES) {
+      const oldest = imageDataCache.keys().next().value;
+      if (!oldest) break;
+      imageDataCache.delete(oldest);
+      imageDataCacheTotalBytes -= imageDataCacheBytes.get(oldest) || 0;
+      imageDataCacheBytes.delete(oldest);
+      droppedImageSources.add(oldest);
+      while (droppedImageSources.size > IMAGE_CACHE_MAX_DROPPED_SOURCES) {
+        droppedImageSources.delete(droppedImageSources.keys().next().value);
+      }
+      evicted = true;
+    }
+    if (imageDataCacheTotalBytes < 0) imageDataCacheTotalBytes = 0;
+    if (evicted) clearMessageExtractionCache();
+  }
+
+  function cacheImageDataUrl(src, dataUrl) {
+    if (!src || !/^data:image\//i.test(dataUrl)) return false;
+    const bytes = dataUrlBytes(dataUrl);
+    if (!bytes || bytes > IMAGE_CACHE_MAX_ITEM_BYTES) return false;
+    droppedImageSources.delete(src);
+    if (imageDataCache.has(src)) {
+      imageDataCacheTotalBytes -= imageDataCacheBytes.get(src) || 0;
+      imageDataCache.delete(src);
+      imageDataCacheBytes.delete(src);
+    }
+    imageDataCache.set(src, dataUrl);
+    imageDataCacheBytes.set(src, bytes);
+    imageDataCacheTotalBytes += bytes;
+    trimImageDataCache();
+    return imageDataCache.has(src);
+  }
+
+  function getCachedImageDataUrl(src) {
+    if (!imageDataCache.has(src)) return "";
+    const dataUrl = imageDataCache.get(src);
+    const bytes = imageDataCacheBytes.get(src) || dataUrlBytes(dataUrl);
+    imageDataCache.delete(src);
+    imageDataCacheBytes.delete(src);
+    imageDataCache.set(src, dataUrl);
+    imageDataCacheBytes.set(src, bytes);
+    return dataUrl;
+  }
+
+  function clearImageDataCache() {
+    imageDataCache.clear();
+    imageDataCacheBytes.clear();
+    droppedImageSources.clear();
+    imageConverting.clear();
+    imageDataCacheTotalBytes = 0;
+    imageCacheGeneration += 1;
+    imageCacheVersion += 1;
+  }
+
+  function scaledImageDimensions(width, height) {
+    if (!width || !height) return { width: 0, height: 0 };
+    const edgeScale = Math.min(1, IMAGE_CONVERT_MAX_EDGE / Math.max(width, height));
+    const pixelScale = Math.min(1, Math.sqrt(IMAGE_CONVERT_MAX_PIXELS / (width * height)));
+    const scale = Math.min(edgeScale, pixelScale);
+    return {
+      width: Math.max(1, Math.round(width * scale)),
+      height: Math.max(1, Math.round(height * scale))
+    };
+  }
+
   // Resolve an <img> to a source the skin's CSP can render (data:/https:). blob:
   // and CORS-tainted images are converted to a data: URL out of band (see
   // convertImageToDataUrl); until that lands we return "" so they're skipped.
   function resolveImageSrc(img, raw) {
     const src = String(raw || "").trim();
     if (!src) return "";
-    if (/^data:image\//i.test(src)) return src;
-    if (imageDataCache.has(src)) return imageDataCache.get(src);
+    if (/^data:image\//i.test(src)) return dataUrlBytes(src) <= IMAGE_CACHE_MAX_ITEM_BYTES ? src : "";
+    if (droppedImageSources.has(src)) return "";
+    const cached = getCachedImageDataUrl(src);
+    if (cached) return cached;
     if (/^https:\/\//i.test(src)) return src; // CSP allows https images directly
     if (/^blob:/i.test(src)) {
       convertImageToDataUrl(img, src);
@@ -462,12 +596,14 @@
   // Best-effort: turn a blob:/tainted image into a data: URL. Tries a same-origin
   // canvas first, then fetch(); caches the result and re-syncs so the skin shows it.
   function convertImageToDataUrl(img, src) {
-    if (imageConverting.has(src) || imageDataCache.has(src)) return;
+    if (imageConverting.has(src) || imageDataCache.has(src) || imageConverting.size >= IMAGE_CONVERT_MAX_IN_FLIGHT) return;
     imageConverting.add(src);
+    const generation = imageCacheGeneration;
     const done = (dataUrl) => {
       imageConverting.delete(src);
-      if (dataUrl && /^data:image\//i.test(dataUrl)) {
-        imageDataCache.set(src, dataUrl);
+      if (generation !== imageCacheGeneration) return;
+      if (dataUrl && cacheImageDataUrl(src, dataUrl)) {
+        markMessageDirtyForNode(img);
         imageCacheVersion += 1;
         postState();
       }
@@ -475,26 +611,43 @@
     try {
       const w = img.naturalWidth, h = img.naturalHeight;
       if (w && h) {
+        const size = scaledImageDimensions(w, h);
         const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0);
-        const url = canvas.toDataURL("image/png");
+        canvas.width = size.width;
+        canvas.height = size.height;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("canvas-context-unavailable");
+        context.drawImage(img, 0, 0, size.width, size.height);
+        const url = canvas.toDataURL("image/jpeg", IMAGE_CONVERT_JPEG_QUALITY);
         if (url && url.length > 64) { done(url); return; }
       }
     } catch {
       /* tainted canvas — fall through to fetch */
     }
     try {
-      fetch(src)
-        .then((response) => response.blob())
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), IMAGE_CONVERT_TIMEOUT_MS);
+      fetch(src, { signal: controller.signal })
+        .then((response) => {
+          const type = response.headers.get("content-type") || "";
+          const length = Number(response.headers.get("content-length") || "0");
+          if (!response.ok) throw new Error("image-fetch-failed");
+          if (type && !/^image\//i.test(type)) throw new Error("not-image");
+          if (length > IMAGE_CONVERT_MAX_SOURCE_BYTES) throw new Error("image-too-large");
+          return response.blob();
+        })
         .then((blob) => {
+          if (!blob || !blob.type || !/^image\//i.test(blob.type) || blob.size > IMAGE_CONVERT_MAX_SOURCE_BYTES) {
+            done("");
+            return;
+          }
           const reader = new FileReader();
           reader.onload = () => done(String(reader.result || ""));
           reader.onerror = () => done("");
           reader.readAsDataURL(blob);
         })
-        .catch(() => done(""));
+        .catch(() => done(""))
+        .finally(() => window.clearTimeout(timeout));
     } catch {
       done("");
     }
@@ -792,26 +945,51 @@
     return blocks;
   }
 
-  function extractMessages() {
-    const messages = [];
+  function extractMessageFromNode(node, index, knownAuthor) {
+    const author = knownAuthor || detectAuthor(node, index);
+    const text = messageBodyText(node, author);
+    const images = collectMessageImages(node, author);
+    if ((!text || text.length < 2) && !images.length) return { author, message: null };
+    const message = { author, text };
+    if (images.length) message.images = images;
+    // Only reverse-engineer assistant turns: the hosts show user text verbatim,
+    // so plain rendering preserves it (and its line breaks) best.
+    if (richFormatting && author === "assistant") {
+      const blocks = blocksForNode(node);
+      if (blocks.length) message.blocks = blocks;
+    }
+    return { author, message };
+  }
 
-    messageNodes().forEach((node, index) => {
+  function extractMessages() {
+    const nodes = messageNodes().slice(-200);
+    const messages = [];
+    const now = Date.now();
+    const fullScan = forceFullMessageScan || now - lastFullMessageScan > MESSAGE_FULL_RECONCILE_MS;
+    if (fullScan) lastFullMessageScan = now;
+
+    nodes.forEach((node, index) => {
       const author = detectAuthor(node, index);
-      const text = messageBodyText(node, author);
-      const images = collectMessageImages(node, author);
-      if ((!text || text.length < 2) && !images.length) return;
-      const message = { author, text };
-      if (images.length) message.images = images;
-      // Only reverse-engineer assistant turns: the hosts show user text verbatim,
-      // so plain rendering preserves it (and its line breaks) best.
-      if (richFormatting && author === "assistant") {
-        const blocks = blocksForNode(node);
-        if (blocks.length) message.blocks = blocks;
+      const tail = nodes.length - index <= MESSAGE_SCAN_TAIL_COUNT;
+      const cached = messageCache.get(node);
+      if (cached && !fullScan && !tail && !dirtyMessageNodes.has(node)
+        && cached.author === author && cached.richFormatting === richFormatting) {
+        if (cached.message) messages.push(cached.message);
+        return;
       }
-      messages.push(message);
+
+      const extracted = extractMessageFromNode(node, index, author);
+      messageCache.set(node, {
+        author: extracted.author,
+        richFormatting,
+        message: extracted.message
+      });
+      if (extracted.message) messages.push(extracted.message);
     });
 
-    return messages.slice(-200);
+    forceFullMessageScan = false;
+    dirtyMessageNodes = new WeakSet();
+    return messages;
   }
 
   function setNativeValue(element, value) {
@@ -1182,9 +1360,35 @@
     return true;
   }
 
+  function conversationCacheKey(conversation) {
+    return [
+      location.origin,
+      location.pathname,
+      conversation?.id || "",
+      conversation?.href || ""
+    ].join("|");
+  }
+
+  function clearMessageExtractionCache() {
+    blockCache = new WeakMap();
+    messageCache = new WeakMap();
+    dirtyMessageNodes = new WeakSet();
+    forceFullMessageScan = true;
+    lastFullMessageScan = 0;
+  }
+
+  function resetCachesForConversation(conversation) {
+    const key = conversationCacheKey(conversation);
+    if (key === lastStateConversationKey) return;
+    lastStateConversationKey = key;
+    clearImageDataCache();
+    clearMessageExtractionCache();
+  }
+
   function stateFromPage() {
     const conversations = extractConversations();
     const activeConversation = extractActiveConversation(conversations);
+    resetCachesForConversation(activeConversation);
 
     return {
       provider: provider().name,
@@ -1296,6 +1500,59 @@
   let lastObserverSync = 0;
   const OBSERVER_MIN_GAP_MS = 200;
 
+  function isShikiOwnedNode(value) {
+    const el = value?.nodeType === 1 ? value : value?.parentElement;
+    if (!el) return false;
+    if (el.id === FRAME_ID || el.id === STYLE_ID) return true;
+    return !!el.closest?.(`#${FRAME_ID}, #${STYLE_ID}`);
+  }
+
+  function markDirtyMessagesInSubtree(value) {
+    if (!value || value.nodeType !== 1) return false;
+    const selectors = messageNodeSelectors();
+    if (!selectors.length) return false;
+    const selector = selectors.join(", ");
+    let marked = false;
+    try {
+      if (value.matches(selector)) {
+        dirtyMessageNodes.add(value);
+        marked = true;
+      }
+      value.querySelectorAll(selector).forEach((node) => {
+        dirtyMessageNodes.add(node);
+        marked = true;
+      });
+    } catch {
+      forceFullMessageScan = true;
+      return true;
+    }
+    return marked;
+  }
+
+  function noteMutations(records) {
+    let sawHostMutation = false;
+    records.forEach((record) => {
+      if (isShikiOwnedNode(record.target)) return;
+      sawHostMutation = true;
+
+      const targetMessage = closestMessageNode(record.target);
+      if (targetMessage) dirtyMessageNodes.add(targetMessage);
+
+      record.addedNodes.forEach((node) => {
+        if (isShikiOwnedNode(node)) return;
+        if (!markDirtyMessagesInSubtree(node)) {
+          const message = closestMessageNode(node);
+          if (message) dirtyMessageNodes.add(message);
+        }
+      });
+
+      if (record.removedNodes.length) {
+        forceFullMessageScan = true;
+      }
+    });
+    return sawHostMutation;
+  }
+
   function requestSync() {
     if (observerSyncQueued || !enabled) return;
     observerSyncQueued = true;
@@ -1312,7 +1569,9 @@
     // Attributes are excluded on purpose: class/style churn is the noisiest
     // source of mutations and irrelevant here. Streaming text (characterData),
     // new turns, and the stop button toggling are all childList/characterData.
-    observer = new MutationObserver(requestSync);
+    observer = new MutationObserver((records) => {
+      if (noteMutations(records)) requestSync();
+    });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   }
 

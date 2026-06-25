@@ -1,9 +1,10 @@
 # Chrome Web Store Prep
 
-Last reviewed: June 24, 2026.
+Last reviewed: June 25, 2026.
 
-Launch note: Shiki v1.2 is the public Chrome Web Store release. Chrome Web Store
-is the only currently available public distribution path; Safari is coming soon.
+Launch note: Shiki v1.2.1 is the current Chrome Web Store release package.
+Chrome Web Store is the only currently available public distribution path;
+Safari is coming soon.
 
 ## Official requirements checked
 
@@ -82,6 +83,7 @@ Remaining visual review item: `icons/` should still be reviewed against the bran
 
 ## Current release
 
-- Public version: `1.2`.
+- Public version: `1.2.1`.
 - Public distribution: Chrome Web Store now; Safari coming soon.
-- Upload package: `dist/shiki-chrome-webstore-v1.2.zip`.
+- Upload package: `dist/shiki-chrome-webstore-v1.2.1.zip`.
+- Release focus: bounded image memory and incremental streaming sync.

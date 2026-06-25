@@ -25,6 +25,8 @@
   // Photo limits: avatars are tiny (header circle); attached photos can be larger.
   const MAX_AVATAR_BYTES = 1024 * 1024; // 1 MB
   const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB per attached photo
+  const MAX_ATTACHMENTS = 6;
+  const MAX_ATTACHMENT_TOTAL_BYTES = 24 * 1024 * 1024;
   const PROFILE_STORAGE_KEY = "shikiProfileImage";
   const IMAGE_CONTROL_KEY = "shikiImageControl";
   // ChatGPT's Pro reasoning tiers (Pro · Standard / Extended) are locked behind the
@@ -349,7 +351,12 @@
       const reader = new FileReader();
       reader.onload = () => {
         const url = String(reader.result || "");
-        resolve(/^data:image\//i.test(url) ? { dataUrl: url, name: file.name || "image", type: file.type } : null);
+        resolve(/^data:image\//i.test(url) ? {
+          dataUrl: url,
+          name: file.name || "image",
+          type: file.type,
+          bytes: url.length
+        } : null);
       };
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(file);
@@ -421,21 +428,43 @@
     });
   }
 
+  function pendingAttachmentBytes() {
+    return pendingAttachments.reduce((sum, att) => sum + (att.bytes || 0), 0);
+  }
+
   async function addAttachmentFiles(fileList) {
     const files = Array.from(fileList || []).filter((file) => file && file.type && file.type.startsWith("image/"));
     if (!files.length) return;
     let rejected = 0;
+    let hitAggregateLimit = false;
     for (const file of files) {
+      if (pendingAttachments.length >= MAX_ATTACHMENTS) {
+        rejected += 1;
+        hitAggregateLimit = true;
+        continue;
+      }
       const result = await readImageFile(file, MAX_IMAGE_BYTES);
       if (!result || result.error) {
         rejected += 1;
         continue;
       }
+      if (pendingAttachmentBytes() + result.bytes > MAX_ATTACHMENT_TOTAL_BYTES) {
+        rejected += 1;
+        hitAggregateLimit = true;
+        continue;
+      }
       attachSeq += 1;
-      pendingAttachments.push({ id: `att-${attachSeq}`, name: result.name, type: result.type, dataUrl: result.dataUrl });
+      pendingAttachments.push({
+        id: `att-${attachSeq}`,
+        name: result.name,
+        type: result.type,
+        dataUrl: result.dataUrl,
+        bytes: result.bytes
+      });
     }
     renderAttachments();
-    if (rejected) showToast("Some photos couldn't be added (max 8 MB each).");
+    if (hitAggregateLimit) showToast("Attachment limit reached (max 6 photos / 24 MB total).");
+    else if (rejected) showToast("Some photos couldn't be added (max 8 MB each).");
     if (promptLine) promptLine.focus();
   }
 

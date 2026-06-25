@@ -1,7 +1,7 @@
 # Shiki - Docs Style for AI Chat
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-v1.2-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/shiki-docs-style-for-ai/mkppiidnbghccgkfcahljijmimboolme)
-[![Direct download](https://img.shields.io/badge/Direct%20download-v1.2-111827)](https://github.com/dcablayan/Shiki/releases/download/v1.2/shiki-chrome-webstore-v1.2.zip)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-v1.2.1-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/shiki-docs-style-for-ai/mkppiidnbghccgkfcahljijmimboolme)
+[![Direct download](https://img.shields.io/badge/Direct%20download-v1.2.1-111827)](https://github.com/dcablayan/Shiki/releases/download/v1.2.1/shiki-chrome-webstore-v1.2.1.zip)
 ![Safari coming soon](https://img.shields.io/badge/Safari-coming%20soon-64748B)
 ![No telemetry](https://img.shields.io/badge/no%20telemetry-local%20only-16A34A)
 
@@ -16,7 +16,7 @@ or telemetry.
 
 ## Download
 
-- [Direct download: Shiki v1.2 ZIP](https://github.com/dcablayan/Shiki/releases/download/v1.2/shiki-chrome-webstore-v1.2.zip)
+- [Direct download: Shiki v1.2.1 ZIP](https://github.com/dcablayan/Shiki/releases/download/v1.2.1/shiki-chrome-webstore-v1.2.1.zip)
 - [Chrome Web Store download](https://chromewebstore.google.com/detail/shiki-docs-style-for-ai/mkppiidnbghccgkfcahljijmimboolme)
 
 After installing, open ChatGPT, Claude, or Gemini. Shiki should appear
@@ -25,6 +25,13 @@ automatically. Safari support is coming soon.
 **Chrome may show a trusted-developer warning because Shiki is published by a
 new developer account that has not built trusted developer status yet. That
 warning is expected while the publisher account is new.**
+
+## What's New In 1.2.1
+
+- Bounds converted image data and pending composer attachments to avoid memory
+  growth in image-heavy chats.
+- Makes streaming sync incremental, refreshing dirty message turns plus a small
+  recent tail instead of rescanning the full transcript on every mutation burst.
 
 ## Preview
 
