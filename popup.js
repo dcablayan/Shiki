@@ -1,14 +1,24 @@
 const PROFILE_KEY = "shikiProfileImage";
 const RICH_KEY = "shikiRichFormatting";
 const IMAGE_CONTROL_KEY = "shikiImageControl";
-const CHATGPT_PRO_KEY = "shikiChatgptPro";
+const TIERS_KEY = "shikiProviderTiers";
+// Pre-1.3 single ChatGPT-Pro boolean; read once as a migration default.
+const LEGACY_CHATGPT_PRO_KEY = "shikiChatgptPro";
+// Subscription tiers per provider, lowest → highest. Mirrors PROVIDER_TIERS in
+// skin.js; each button cycles through its provider's ladder (same interaction
+// pattern as the other popup toggles).
+const PROVIDER_TIERS = {
+  ChatGPT: ["Free", "Plus", "Pro"],
+  Claude: ["Free", "Pro", "Max"],
+  Gemini: ["Free", "Advanced"]
+};
 const MAX_AVATAR_BYTES = 1024 * 1024;
 
 const toggleButton = document.getElementById("toggle");
 const syncButton = document.getElementById("sync");
 const formattingButton = document.getElementById("formatting");
 const imageControlButton = document.getElementById("imageControl");
-const chatgptProButton = document.getElementById("chatgptPro");
+const tierButtons = Array.from(document.querySelectorAll("button[data-provider]"));
 const status = document.getElementById("status");
 const pickAvatarButton = document.getElementById("pickAvatar");
 const resetAvatarButton = document.getElementById("resetAvatar");
@@ -93,22 +103,49 @@ imageControlButton.addEventListener("click", () => {
   });
 });
 
-function reflectChatgptPro(on) {
-  chatgptProButton.textContent = on ? "On" : "Off";
-  chatgptProButton.setAttribute("aria-pressed", String(on));
+// Coerce whatever is stored into a full { provider: tier } map, falling back to
+// each provider's lowest tier. The legacy ChatGPT-Pro boolean is honoured only
+// while no explicit tier selection exists yet.
+function normalizeTiers(stored, legacyPro) {
+  const tiers = {};
+  Object.keys(PROVIDER_TIERS).forEach((provider) => {
+    const options = PROVIDER_TIERS[provider];
+    const raw = stored && typeof stored === "object" ? String(stored[provider] || "") : "";
+    tiers[provider] = options.find((tier) => tier.toLowerCase() === raw.toLowerCase()) || options[0];
+  });
+  if ((!stored || typeof stored !== "object") && legacyPro) tiers.ChatGPT = "Pro";
+  return tiers;
 }
 
-chrome.storage.local.get({ [CHATGPT_PRO_KEY]: false }, (result) => {
-  reflectChatgptPro(result[CHATGPT_PRO_KEY] === true);
+function reflectTiers(tiers) {
+  tierButtons.forEach((button) => {
+    button.textContent = tiers[button.dataset.provider] || "Free";
+  });
+}
+
+chrome.storage.local.get({ [TIERS_KEY]: null, [LEGACY_CHATGPT_PRO_KEY]: false }, (result) => {
+  const tiers = normalizeTiers(result[TIERS_KEY], result[LEGACY_CHATGPT_PRO_KEY] === true);
+  reflectTiers(tiers);
+  // One-time migration from the old ChatGPT-Pro toggle to explicit tiers.
+  if (!result[TIERS_KEY] || typeof result[TIERS_KEY] !== "object") {
+    chrome.storage.local.set({ [TIERS_KEY]: tiers });
+  }
 });
 
-chatgptProButton.addEventListener("click", () => {
-  chrome.storage.local.get({ [CHATGPT_PRO_KEY]: false }, (result) => {
-    const next = result[CHATGPT_PRO_KEY] !== true; // flip current value
-    chrome.storage.local.set({ [CHATGPT_PRO_KEY]: next }, () => {
-      reflectChatgptPro(next);
-      setStatus(next ? "ChatGPT Pro options shown." : "ChatGPT Pro options hidden.");
-      refreshActiveTab();
+tierButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const provider = button.dataset.provider;
+    const options = PROVIDER_TIERS[provider];
+    if (!options) return;
+    chrome.storage.local.get({ [TIERS_KEY]: null, [LEGACY_CHATGPT_PRO_KEY]: false }, (result) => {
+      const tiers = normalizeTiers(result[TIERS_KEY], result[LEGACY_CHATGPT_PRO_KEY] === true);
+      const next = options[(options.indexOf(tiers[provider]) + 1) % options.length];
+      tiers[provider] = next;
+      chrome.storage.local.set({ [TIERS_KEY]: tiers }, () => {
+        reflectTiers(tiers);
+        setStatus(`${provider} plan set to ${next}.`);
+        refreshActiveTab();
+      });
     });
   });
 });

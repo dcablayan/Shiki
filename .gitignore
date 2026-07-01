@@ -9,3 +9,7 @@
 # Build artifacts
 dist/
 *.zip
+
+# Generated local marketing/build outputs
+brag-output*/
+shiki-chrome-webstore-v*/

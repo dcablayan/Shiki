@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Shiki Docs Style for AI",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "A Docs-style workspace for supported AI chat pages with conversation-switcher sync.",
   "icons": {
     "16": "icons/icon16.png",

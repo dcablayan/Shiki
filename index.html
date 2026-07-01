@@ -670,6 +670,22 @@
       color: #5f6368;
     }
 
+    /* Subtle plan flag: a small amber dot shown when the host reports a model
+       outside the subscription tier selected in the popup. Details live in the
+       button's tooltip/aria-label; the dot itself stays quiet. */
+    .model-tier-flag {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: #f29900;
+      margin-left: -2px;
+    }
+
+    .model-tier-flag[hidden] {
+      display: none;
+    }
+
     .tabs-title-row {
       height: 36px;
       display: flex;
@@ -1442,6 +1458,31 @@
 
     .doc-thinking-label {
       font-style: italic;
+      /* Docs-style shimmer: a soft grey sheen sweeps the label while the model
+         works. The gradient is 200% wide and the position animates only within
+         0–100%, so the clipped text is fully covered at every frame (beyond
+         that range, no-repeat would leave transparent text uncovered).
+         Falls back to plain text under prefers-reduced-motion. */
+      color: #5f6368;
+      background-image: linear-gradient(90deg, #5f6368 0%, #5f6368 44%, #9aa0a6 50%, #5f6368 56%, #5f6368 100%);
+      background-size: 200% 100%;
+      background-repeat: no-repeat;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shiki-shimmer 2.4s linear infinite;
+    }
+
+    /* 100% puts the sheen at the label's left edge, 0% at its right,
+       so this sweeps left → right. */
+    @keyframes shiki-shimmer {
+      from {
+        background-position: 100% 0;
+      }
+
+      to {
+        background-position: 0% 0;
+      }
     }
 
     /* Blinking caret trailing the live reply while tokens stream in. */
@@ -1460,6 +1501,12 @@
       .doc-thinking-dots i {
         animation: none;
         opacity: 0.6;
+      }
+
+      .doc-thinking-label {
+        animation: none;
+        background-image: none;
+        -webkit-text-fill-color: currentColor;
       }
 
       .stream-caret {
@@ -1783,6 +1830,7 @@
           <div class="tabs-title-row">
             <button class="model-title-button" data-action="select-model" data-model-id="gpt-5.5" aria-label="Select model">
               <span class="control-label">GPT-5.5</span>
+              <span class="model-tier-flag" data-model-tier-flag hidden aria-hidden="true"></span>
               <svg class="icon"><use href="#i-chevron-down"/></svg>
             </button>
             <button class="add-tab" data-action="select-effort" data-effort-level="high" aria-label="Effort: High" title="Effort: High"><span class="control-label sr-only">High</span><span aria-hidden="true">+</span></button>

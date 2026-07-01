@@ -30,7 +30,7 @@ Lapetus Software
 
 Public version:
 
-1.2.1
+1.3.0
 
 Homepage/support URL:
 
@@ -51,6 +51,7 @@ Core features:
 - Send prompts from the document composer through the AI site's real composer.
 - Preserve rich formatting for headings, lists, code blocks, links, quotes, tables, and images.
 - Attach images to supported AI chats from the document workspace.
+- Choose per-provider plan tiers so Shiki only offers model and reasoning options that match the selected plan.
 - Pin, rename, or hide chats locally without modifying or deleting anything on the AI provider.
 - Store preferences locally in Chrome.
 

@@ -1,8 +1,8 @@
 # Chrome Web Store Prep
 
-Last reviewed: June 25, 2026.
+Last reviewed: July 1, 2026.
 
-Launch note: Shiki v1.2.1 is the current Chrome Web Store release package.
+Launch note: Shiki v1.3.0 is the current Chrome Web Store release package.
 Chrome Web Store is the only currently available public distribution path;
 Safari is coming soon.
 
@@ -34,7 +34,7 @@ Applied compliance changes:
 - Removed the flagged affiliation sentence from the Store Listing description.
 - Replaced public summary/description wording with "supported AI chat pages"
   instead of listing service names.
-- Bumped the Chrome package to `1.2` for the public Chrome Web Store release.
+- Bumped the Chrome package for the public Chrome Web Store release.
 - Updated promo copy so promotional images do not list supported services as
   standalone keywords.
 
@@ -83,7 +83,9 @@ Remaining visual review item: `icons/` should still be reviewed against the bran
 
 ## Current release
 
-- Public version: `1.2.1`.
+- Public version: `1.3.0`.
 - Public distribution: Chrome Web Store now; Safari coming soon.
-- Upload package: `dist/shiki-chrome-webstore-v1.2.1.zip`.
-- Release focus: bounded image memory and incremental streaming sync.
+- Upload package: `dist/shiki-chrome-webstore-v1.3.0.zip`.
+- Release focus: per-provider plan tiers, plan-aware model/reasoning menus,
+  out-of-plan model warning, thinking indicator polish, and model detection
+  cleanup.

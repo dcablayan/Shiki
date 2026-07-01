@@ -220,16 +220,18 @@
     // ChatGPT no longer shows the model name in a top-bar switcher: the composer
     // pill shows the effort ("Instant") plus a model badge ("5.4") ONLY when a
     // non-default model is picked. So read the badge; its absence means the default
-    // model. This is the only reliable closed-menu read for ChatGPT.
+    // model. This is the only reliable closed-menu read for ChatGPT. Bare numbers
+    // must contain a dot ("5.4", "5.10") so counters/short digits in the pill
+    // can't false-positive; o-series and gpt-prefixed badges are matched whole.
     if (host.includes("chatgpt") || host.includes("openai")) {
       const pill = document.querySelector("button.__composer-pill");
       if (pill) {
         const badge = Array.from(pill.querySelectorAll("span"))
           .map((s) => cleanText(s.textContent || "").trim())
-          .find((t) => /^(o\d|\d\.\d|gpt[-\s]?[\d.]+)$/i.test(t));
+          .find((t) => /^(o\d+|\d+\.\d+|gpt[-\s]?\d[\w.]*)$/i.test(t));
         if (badge) {
           let label;
-          if (/^o\d$/i.test(badge)) label = badge.toLowerCase();
+          if (/^o\d+$/i.test(badge)) label = badge.toLowerCase();
           else if (/^gpt/i.test(badge)) label = "GPT-" + badge.replace(/^gpt[-\s]?/i, "");
           else label = "GPT-" + badge;
           return { id: label.toLowerCase().replace(/[^a-z0-9.]+/g, "-"), label };
@@ -240,8 +242,11 @@
 
     // Gemini's collapsed pill shows an ABBREVIATED mode ("Flash-Lite"/"Flash"/
     // "Pro") with no version, which the version-requiring regex can't match. The
-    // mode-picker button's aria-label ("…currently Flash") is the reliable source;
-    // map the short name back to the full model label.
+    // mode-picker button's aria-label ("…currently Flash") is the reliable source.
+    // If the label ever carries a versioned name (e.g. "currently 3.5 Flash"), use
+    // it directly; otherwise map the short name back to the full model label.
+    // NOTE: keep this map in step with the Gemini entries in skin.js
+    // PROVIDER_MODELS when Google renames or reversions models.
     if (host.includes("gemini")) {
       const btn = document.querySelector('button[aria-label*="mode picker" i]')
         || document.querySelector('button[aria-label*="currently" i]');
@@ -249,7 +254,7 @@
       if (m) {
         const short = m[1].trim();
         const map = { "flash-lite": "3.1 Flash-Lite", "flash": "3.5 Flash", "pro": "3.1 Pro" };
-        const label = map[short.toLowerCase()] || short;
+        const label = /\d/.test(short) ? short : (map[short.toLowerCase()] || short);
         return { id: label.toLowerCase().replace(/[^a-z0-9.]+/g, "-"), label };
       }
     }
@@ -272,13 +277,13 @@
     return config.defaultModel;
   }
 
-  function extractEffort() {
-    const bodyText = cleanText(document.body?.innerText || "").slice(0, 6000);
-    const match = bodyText.match(/\b(high|medium|low|auto)\b/i);
-    const label = match ? match[1][0].toUpperCase() + match[1].slice(1).toLowerCase() : "High";
-
-    return { level: label.toLowerCase(), label };
-  }
+  // NOTE (accuracy audit): the old extractEffort() here scanned the first 6000
+  // chars of document.body.innerText for "high|medium|low|auto", which (a) forced
+  // a full-page text serialization on every sync and (b) matched ordinary message
+  // words ("high quality") far more often than a real control. The skin never
+  // consumed the value — reasoning selection is skin-owned — so the scan was
+  // removed rather than "fixed". If a provider ever exposes a reliably readable
+  // effort control, wire it here and re-add `effort` to the state payload.
 
   // While the model is replying, each host swaps its send button for a "stop"
   // control. That's the most reliable cross-provider "is generating" signal, so
@@ -1396,7 +1401,6 @@
       conversations,
       activeConversationId: activeConversation.id,
       model: extractModel(),
-      effort: extractEffort(),
       messages: extractMessages(),
       profileImage,
       richFormatting,

@@ -1,7 +1,7 @@
 # Shiki - Docs Style for AI Chat
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-v1.2.1-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/shiki-docs-style-for-ai/mkppiidnbghccgkfcahljijmimboolme)
-[![Direct download](https://img.shields.io/badge/Direct%20download-v1.2.1-111827)](https://github.com/dcablayan/Shiki/releases/download/v1.2.1/shiki-chrome-webstore-v1.2.1.zip)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-v1.3.0-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/shiki-docs-style-for-ai/mkppiidnbghccgkfcahljijmimboolme)
+[![Direct download](https://img.shields.io/badge/Direct%20download-v1.3.0-111827)](https://github.com/dcablayan/Shiki/releases/download/v1.3.0/shiki-chrome-webstore-v1.3.0.zip)
 ![Safari coming soon](https://img.shields.io/badge/Safari-coming%20soon-64748B)
 ![No telemetry](https://img.shields.io/badge/no%20telemetry-local%20only-16A34A)
 
@@ -16,7 +16,7 @@ or telemetry.
 
 ## Download
 
-- [Direct download: Shiki v1.2.1 ZIP](https://github.com/dcablayan/Shiki/releases/download/v1.2.1/shiki-chrome-webstore-v1.2.1.zip)
+- [Direct download: Shiki v1.3.0 ZIP](https://github.com/dcablayan/Shiki/releases/download/v1.3.0/shiki-chrome-webstore-v1.3.0.zip)
 - [Chrome Web Store download](https://chromewebstore.google.com/detail/shiki-docs-style-for-ai/mkppiidnbghccgkfcahljijmimboolme)
 
 After installing, open ChatGPT, Claude, or Gemini. Shiki should appear
@@ -26,12 +26,18 @@ automatically. Safari support is coming soon.
 new developer account that has not built trusted developer status yet. That
 warning is expected while the publisher account is new.**
 
-## What's New In 1.2.1
+## What's New In 1.3.0
 
-- Bounds converted image data and pending composer attachments to avoid memory
-  growth in image-heavy chats.
-- Makes streaming sync incremental, refreshing dirty message turns plus a small
-  recent tail instead of rescanning the full transcript on every mutation burst.
+- Adds per-provider plan tiers in the popup so model and reasoning menus can
+  stay aligned with the user's selected ChatGPT, Claude, and Gemini plans.
+- Hides model and reasoning options above the selected plan while keeping the
+  host page as the source of truth for the active model.
+- Shows a subtle warning on the model control if the host reports a model outside
+  the selected Shiki plan tier.
+- Polishes the thinking indicator so it appears immediately after sending,
+  shimmers while waiting, and clears promptly when generation ends or fails.
+- Tightens ChatGPT and Gemini model detection and removes an unused full-page
+  reasoning scan.
 
 ## Preview
 
@@ -50,6 +56,8 @@ warning is expected while the publisher account is new.**
 - Docs-style chat surface with header, toolbar, ruler, page canvas, and sidebar.
 - Conversation switcher with local pins, renames, and hidden chats.
 - Provider-aware model and reasoning controls for ChatGPT, Claude, and Gemini.
+- Per-provider plan tier controls that keep model menus focused on available
+  choices.
 - Rich replies for headings, lists, code blocks, tables, quotes, links, and images.
 - Message sending from the document composer, including Shift+Enter new lines.
 - Image attachments, custom profile picture, rich/plain text toggle, and sync refresh.

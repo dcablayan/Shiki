@@ -18,9 +18,12 @@
   const insertMenuItem = document.querySelector("[data-menu-insert]");
   // "Thinking…" indicator shown between the transcript and composer while the
   // model is working. `optimisticThinkingUntil` keeps it up for a short window
-  // right after the user sends, before the host's generating signal arrives.
+  // right after the user sends, before the host's generating signal arrives;
+  // `sawGeneratingSignal` records that the signal did arrive, so the indicator
+  // can drop the moment it ends instead of waiting out the optimistic window.
   const thinkingEl = document.querySelector("[data-thinking]");
   let optimisticThinkingUntil = 0;
+  let sawGeneratingSignal = false;
 
   // Photo limits: avatars are tiny (header circle); attached photos can be larger.
   const MAX_AVATAR_BYTES = 1024 * 1024; // 1 MB
@@ -29,9 +32,20 @@
   const MAX_ATTACHMENT_TOTAL_BYTES = 24 * 1024 * 1024;
   const PROFILE_STORAGE_KEY = "shikiProfileImage";
   const IMAGE_CONTROL_KEY = "shikiImageControl";
-  // ChatGPT's Pro reasoning tiers (Pro · Standard / Extended) are locked behind the
-  // paid Pro plan, so they stay hidden until the user confirms access in the popup.
-  const CHATGPT_PRO_KEY = "shikiChatgptPro";
+  // Provider subscription tiers, ordered lowest → highest. Shiki can't reliably
+  // read the host's plan, so the user picks their tier per provider in the popup;
+  // models and reasoning levels above that tier stay hidden (see PROVIDER_MODELS,
+  // where access is declared per entry via `minTier`).
+  const PROVIDER_TIERS = {
+    ChatGPT: ["Free", "Plus", "Pro"],
+    Claude: ["Free", "Pro", "Max"],
+    Gemini: ["Free", "Advanced"],
+    AI: ["Free"]
+  };
+  const TIERS_KEY = "shikiProviderTiers";
+  // Pre-1.3 versions stored a single ChatGPT-Pro boolean; honoured once as a
+  // migration default (true → ChatGPT: "Pro") until TIERS_KEY is written.
+  const LEGACY_CHATGPT_PRO_KEY = "shikiChatgptPro";
 
   // Photos staged in the composer; sent with (and cleared on) the next message.
   // Each entry: { id, name, type, dataUrl }.
@@ -99,45 +113,51 @@
   let toastTimer = 0;
   const titleRow = document.querySelector(".tabs-title-row");
 
-  // Per-provider models and their reasoning options, per the V2 spec. `efforts`
-  // are the selectable reasoning levels; `proEfforts` are extra levels gated behind
-  // a paid plan that only appear once the user confirms access (see CHATGPT_PRO_KEY);
-  // `toggle` is an independent on/off modifier the provider exposes alongside them
-  // (e.g. extended thinking), and `toggleDefault: true` makes that modifier start ON
-  // for the model. The host page stays the source of truth: the active
-  // model is mirrored from it when available and selections are routed back to the
-  // host's real controls.
+  // Per-provider models and their reasoning options, per the V2 spec. Access is
+  // data-driven: `minTier` on a model is the lowest subscription tier (see
+  // PROVIDER_TIERS) that includes it, and each entry in `efforts` is either a
+  // plain string (available whenever the model is) or `{ label, minTier }` for
+  // levels gated behind a higher tier. `toggle` is an independent on/off modifier
+  // the provider exposes alongside them (e.g. extended thinking), and
+  // `toggleDefault: true` makes that modifier start ON for the model. The host
+  // page stays the source of truth: the active model is mirrored from it when
+  // available and selections are routed back to the host's real controls.
   const PROVIDER_MODELS = {
     ChatGPT: [
-      { label: "GPT-5.5", efforts: ["Instant", "Medium", "High", "Extra High"], proEfforts: ["Pro · Standard", "Pro · Extended"], default: "Instant" },
-      { label: "GPT-5.4", efforts: ["Instant", "Medium", "High", "Extra High"], proEfforts: ["Pro · Standard", "Pro · Extended"], default: "Instant" },
-      { label: "GPT-5.3", efforts: ["Instant"] },
-      { label: "GPT-4.5", efforts: ["Instant"] },
-      { label: "o3", efforts: ["Medium"] }
+      // Free accounts get the flagship default with instant answers only; Plus
+      // unlocks the deeper reasoning levels and the legacy models; Pro adds the
+      // Pro reasoning tiers ($200/mo plan).
+      { label: "GPT-5.5", minTier: "Free", efforts: ["Instant", { label: "Medium", minTier: "Plus" }, { label: "High", minTier: "Plus" }, { label: "Extra High", minTier: "Plus" }, { label: "Pro · Standard", minTier: "Pro" }, { label: "Pro · Extended", minTier: "Pro" }], default: "Instant" },
+      { label: "GPT-5.4", minTier: "Plus", efforts: ["Instant", "Medium", "High", "Extra High", { label: "Pro · Standard", minTier: "Pro" }, { label: "Pro · Extended", minTier: "Pro" }], default: "Instant" },
+      { label: "GPT-5.3", minTier: "Plus", efforts: ["Instant"] },
+      { label: "GPT-4.5", minTier: "Pro", efforts: ["Instant"] },
+      { label: "o3", minTier: "Plus", efforts: ["Medium"] }
     ],
     Claude: [
       // Fable 5 is intentionally omitted until it's publicly available again.
       // Primary models (host's top-level model menu). `toggle` is the host's
       // reasoning switch — "Thinking" (optional, "can think for complex tasks") or
       // "Extended" ("always uses deep reasoning") — and `default` is the level the
-      // host tags as Default in its effort submenu.
-      { label: "Opus 4.8", efforts: ["Low", "Medium", "High", "Extra", "Max"], toggle: "Thinking", toggleDefault: true, default: "High" },
-      { label: "Sonnet 4.6", efforts: ["Low", "Medium", "High", "Max"], toggle: "Thinking", default: "Low" },
-      { label: "Haiku 4.5", efforts: [], toggle: "Extended" },
+      // host tags as Default in its effort submenu. Sonnet/Haiku are on the free
+      // plan; every Opus needs a paid plan. Max raises usage limits rather than
+      // unlocking extra models/levels, so nothing is tagged Max-only.
+      { label: "Opus 4.8", minTier: "Pro", efforts: ["Low", "Medium", "High", "Extra", "Max"], toggle: "Thinking", toggleDefault: true, default: "High" },
+      { label: "Sonnet 4.6", minTier: "Free", efforts: ["Low", "Medium", "High", "Max"], toggle: "Thinking", default: "Low" },
+      { label: "Haiku 4.5", minTier: "Free", efforts: [], toggle: "Extended" },
       // Secondary models (host's "More models" submenu). All verified via screenshots:
       // 4.7 uses the same levels as 4.8 but defaults to Extra; 4.6 defaults to Medium
       // with the Extended toggle; Opus 3 has no reasoning controls at all.
-      { label: "Opus 4.7", efforts: ["Low", "Medium", "High", "Extra", "Max"], toggle: "Thinking", toggleDefault: true, default: "Extra" },
-      { label: "Opus 4.6", efforts: ["Low", "Medium", "High", "Max"], toggle: "Extended", toggleDefault: true, default: "Medium" },
-      { label: "Opus 3", efforts: [] }
+      { label: "Opus 4.7", minTier: "Pro", efforts: ["Low", "Medium", "High", "Extra", "Max"], toggle: "Thinking", toggleDefault: true, default: "Extra" },
+      { label: "Opus 4.6", minTier: "Pro", efforts: ["Low", "Medium", "High", "Max"], toggle: "Extended", toggleDefault: true, default: "Medium" },
+      { label: "Opus 3", minTier: "Pro", efforts: [] }
     ],
     Gemini: [
       // Menu order matches the host. "Thinking level" is the reasoning control —
       // Standard ("best for most questions") / Extended ("complex problem solving"),
-      // default Standard — and all three models expose the same two levels.
-      { label: "3.1 Flash-Lite", efforts: ["Standard", "Extended"], default: "Standard" },
-      { label: "3.5 Flash", efforts: ["Standard", "Extended"], default: "Standard" },
-      { label: "3.1 Pro", efforts: ["Standard", "Extended"], default: "Standard" }
+      // default Standard. Flash models are on the free plan; Pro needs Advanced.
+      { label: "3.1 Flash-Lite", minTier: "Free", efforts: ["Standard", "Extended"], default: "Standard" },
+      { label: "3.5 Flash", minTier: "Free", efforts: ["Standard", "Extended"], default: "Standard" },
+      { label: "3.1 Pro", minTier: "Advanced", efforts: ["Standard", "Extended"], default: "Standard" }
     ],
     AI: [
       { label: "Default", efforts: [] }
@@ -149,7 +169,12 @@
   // and is routed to the host best-effort on selection.
   let currentEffortLabel = "";
   let toggleOn = false;
-  let hasProAccess = false;
+  // Selected subscription tier per provider (e.g. { ChatGPT: "Plus" }); anything
+  // missing defaults to that provider's lowest tier. Loaded from TIERS_KEY.
+  // `hasExplicitTiers` flips once a stored selection exists, so the legacy
+  // ChatGPT-Pro boolean can never override a choice the user actually made.
+  let providerTiers = {};
+  let hasExplicitTiers = false;
   let lastModelLabel = "";
 
   function normLabel(value) {
@@ -160,12 +185,88 @@
     return PROVIDER_MODELS[prov] || PROVIDER_MODELS.AI;
   }
 
-  function findModelEntry(prov, label) {
+  // ---- Subscription tiers -------------------------------------------------
+  // Everything below is driven by PROVIDER_TIERS (the ladder) and the `minTier`
+  // tags in PROVIDER_MODELS; no model or level is gated in code.
+
+  function tiersForProvider(prov) {
+    return PROVIDER_TIERS[prov] || PROVIDER_TIERS.AI;
+  }
+
+  // Map any stored/legacy value onto a real tier for the provider; unknown or
+  // missing values fall back to the lowest (free) tier.
+  function normalizeTier(prov, tier) {
+    const tiers = tiersForProvider(prov);
+    const n = normLabel(tier);
+    return tiers.find((t) => normLabel(t) === n) || tiers[0];
+  }
+
+  function currentTier(prov = currentProvider) {
+    return normalizeTier(prov, providerTiers[prov]);
+  }
+
+  function tierRank(prov, tier) {
+    return tiersForProvider(prov).indexOf(normalizeTier(prov, tier));
+  }
+
+  function tierAllows(prov, tier, minTier) {
+    if (!minTier) return true;
+    return tierRank(prov, tier) >= tierRank(prov, minTier);
+  }
+
+  function isModelAvailable(entry, tier = currentTier()) {
+    return !!entry && tierAllows(currentProvider, tier, entry.minTier);
+  }
+
+  function modelsForTier(prov, tier) {
+    return modelsForProvider(prov).filter((m) => tierAllows(prov, tier, m.minTier));
+  }
+
+  // Efforts are authored as strings (available whenever the model is) or
+  // { label, minTier } for levels gated behind a higher tier.
+  function effortMinTier(entry, effort) {
+    return (typeof effort === "object" && effort && effort.minTier) || entry.minTier;
+  }
+
+  function effortLabelOf(effort) {
+    return typeof effort === "string" ? effort : String((effort && effort.label) || "");
+  }
+
+  function effortsForTier(entry, tier = currentTier()) {
+    if (!entry) return [];
+    return (entry.efforts || [])
+      .filter((effort) => tierAllows(currentProvider, tier, effortMinTier(entry, effort)))
+      .map(effortLabelOf)
+      .filter(Boolean);
+  }
+
+  // The tier to gate the ACTIVE model's reasoning levels against. The host page
+  // is the source of truth for which model is running: if it reports one above
+  // the selected plan we don't blank the reasoning control — the model's own
+  // base levels stay usable (its tier counts as unlocked for it alone), while a
+  // subtle warning flags the mismatch (see syncModelAvailability). Levels above
+  // both tiers stay hidden.
+  function effectiveTierFor(entry) {
+    const selected = currentTier();
+    if (!entry || isModelAvailable(entry, selected)) return selected;
+    return normalizeTier(currentProvider, entry.minTier);
+  }
+
+  // ---- Model lookup -------------------------------------------------------
+
+  // Strict lookup: null when the label doesn't correspond to a known model, so
+  // callers can tell "matched a paid model" apart from "unknown label".
+  function matchModelEntry(prov, label) {
     const list = modelsForProvider(prov);
     const n = normLabel(label);
+    if (!n) return null;
     return list.find((m) => normLabel(m.label) === n)
-      || (n && list.find((m) => normLabel(m.label).includes(n) || n.includes(normLabel(m.label))))
-      || list[0];
+      || list.find((m) => normLabel(m.label).includes(n) || n.includes(normLabel(m.label)))
+      || null;
+  }
+
+  function findModelEntry(prov, label) {
+    return matchModelEntry(prov, label) || modelsForProvider(prov)[0];
   }
 
   function currentModelLabel() {
@@ -176,15 +277,9 @@
     return findModelEntry(currentProvider, currentModelLabel());
   }
 
-  // A model's effective reasoning levels: its base efforts plus any Pro-tier levels,
-  // which only unlock once the user confirms paid access (Pro is $200/mo on ChatGPT).
+  // A model's effective reasoning levels under the current plan selection.
   function effortsFor(entry) {
-    if (!entry) return [];
-    const base = (entry.efforts || []).slice();
-    if (hasProAccess && entry.proEfforts && entry.proEfforts.length) {
-      return base.concat(entry.proEfforts);
-    }
-    return base;
+    return effortsForTier(entry, effectiveTierFor(entry));
   }
 
   // Menu items for a model's reasoning control: its levels plus the toggle (if any).
@@ -244,21 +339,61 @@
     effortButton.dataset.effortLevel = normLabel(currentEffortLabel);
   }
 
-  // Pro tiers are skin-gated behind an explicit opt-in (Shiki can't reliably read
-  // the host's plan), so toggling access re-validates the current reasoning level —
-  // a Pro level falls back to the model default when access is turned off.
-  function applyProAccess(value) {
-    const next = !!value;
-    if (next === hasProAccess) return;
-    hasProAccess = next;
-    syncEffortControl();
+  // Reflect the selected model's plan availability onto the model control. The
+  // host page is the source of truth, so a model above the selected tier is
+  // still shown — we just surface a subtle amber flag + tooltip instead of
+  // hiding it or blanking the controls.
+  function syncModelAvailability() {
+    if (!modelButton) return;
+    const flag = modelButton.querySelector("[data-model-tier-flag]");
+    const label = currentModelLabel();
+    // Only a strict match can be "outside the plan"; unknown labels (e.g. a
+    // brand-new host model we don't know yet) are never flagged.
+    const matched = matchModelEntry(currentProvider, label);
+    const outsideTier = !!(matched && !isModelAvailable(matched, currentTier()));
+
+    if (flag) flag.hidden = !outsideTier;
+    if (outsideTier) {
+      const note = `${label} isn't included in the ${currentTier()} ${currentProvider} plan selected in the Shiki popup.`;
+      modelButton.title = note;
+      modelButton.setAttribute("aria-label", `Select model. ${note}`);
+    } else {
+      modelButton.removeAttribute("title");
+      modelButton.setAttribute("aria-label", "Select model");
+    }
   }
 
-  function loadProAccessPreference() {
+  // Tier selection is skin-gated behind an explicit per-provider choice (Shiki
+  // can't reliably read the host's plan), so changing it re-validates the current
+  // reasoning level — a now-hidden level falls back to the model default — and
+  // refreshes the out-of-tier warning on the model control.
+  function applyTiers(next) {
+    const normalized = {};
+    Object.keys(PROVIDER_TIERS).forEach((prov) => {
+      normalized[prov] = normalizeTier(prov, next && next[prov]);
+    });
+    const changed = Object.keys(normalized).some((prov) => normalized[prov] !== providerTiers[prov]);
+    providerTiers = normalized;
+    if (!changed) return;
+    syncEffortControl();
+    syncModelAvailability();
+  }
+
+  function loadTierPreference() {
+    const applyStored = (stored, legacyPro) => {
+      if (stored && typeof stored === "object") {
+        hasExplicitTiers = true;
+        applyTiers(stored);
+        return;
+      }
+      // First run after updating from the single ChatGPT-Pro toggle: keep those
+      // users' Pro reasoning levels unlocked until they pick tiers themselves.
+      applyTiers(legacyPro ? { ChatGPT: "Pro" } : {});
+    };
     try {
       if (typeof chrome !== "undefined" && chrome.storage?.local) {
-        chrome.storage.local.get({ [CHATGPT_PRO_KEY]: false }, (result) => {
-          applyProAccess(result[CHATGPT_PRO_KEY] === true);
+        chrome.storage.local.get({ [TIERS_KEY]: null, [LEGACY_CHATGPT_PRO_KEY]: false }, (result) => {
+          applyStored(result[TIERS_KEY], result[LEGACY_CHATGPT_PRO_KEY] === true);
         });
         return;
       }
@@ -266,9 +401,9 @@
       /* fall through to localStorage */
     }
     try {
-      applyProAccess(localStorage.getItem(CHATGPT_PRO_KEY) === "true");
+      applyStored(JSON.parse(localStorage.getItem(TIERS_KEY) || "null"), localStorage.getItem(LEGACY_CHATGPT_PRO_KEY) === "true");
     } catch {
-      applyProAccess(false);
+      applyTiers({});
     }
   }
 
@@ -847,6 +982,7 @@
       lastModelLabel = modelLabelNow;
     }
     syncEffortControl();
+    syncModelAvailability();
 
     if (typeof state.profileImage === "string") {
       applyProfileImage(state.profileImage);
@@ -1513,6 +1649,15 @@
     const last = renderedMessages[renderedMessages.length - 1];
     const assistantReplying = !!(last && last.author === "assistant"
       && ((last.text && last.text.trim()) || (last.blocks && last.blocks.length)));
+    // Once the host's stop control has appeared and gone, generation is over —
+    // drop the optimistic post-send window immediately (finished/aborted runs
+    // shouldn't leave the indicator lingering out its timeout).
+    if (generating) {
+      sawGeneratingSignal = true;
+    } else if (sawGeneratingSignal) {
+      sawGeneratingSignal = false;
+      optimisticThinkingUntil = 0;
+    }
     const optimistic = Date.now() < optimisticThinkingUntil;
     setThinking((generating || optimistic) && !assistantReplying);
     updateStreamingCaret(generating && assistantReplying);
@@ -1655,6 +1800,7 @@
     // Show the thinking indicator immediately; the host's generating signal takes
     // over once it arrives (and keeps it accurate for sends made on the host too).
     optimisticThinkingUntil = Date.now() + 6000;
+    sawGeneratingSignal = false;
     reflectGenerating(false);
     pendingSendNeedle = text ? text.replace(/\s+/g, " ").trim().slice(0, 18).toLowerCase() : "";
     notifyHost("submit-prompt", {
@@ -1750,7 +1896,10 @@
     if (action === "select-model") {
       flash(control);
       const current = currentModelLabel();
-      const labels = modelsForProvider(currentProvider).map((m) => m.label);
+      // Only offer models the selected plan includes; the button itself may still
+      // show an out-of-tier model the host reported (with the warning flag), in
+      // which case no menu row is checked.
+      const labels = modelsForTier(currentProvider, currentTier()).map((m) => m.label);
       openMenu("left", labels, (item) => normLabel(item) === normLabel(current), (label) => {
         updateSelector(modelButton, label, "modelId", normLabel(label).replace(/[^a-z0-9.]+/g, "-"));
         // A new model may expose different reasoning options → reset to its default.
@@ -1759,6 +1908,7 @@
         toggleOn = defaultToggleFor(entry);
         lastModelLabel = label;
         syncEffortControl();
+        syncModelAvailability();
         notifyHost("select-model", { modelId: modelButton.dataset.modelId, label });
       });
     }
@@ -1932,6 +2082,10 @@
       selectConversation(message.conversation || message.conversationId, { silent: true });
     } else if (message.type === "submit-result") {
       if (message.ok === false) {
+        // The prompt never reached the host composer, so nothing is generating —
+        // clear the optimistic thinking window along with showing the warning.
+        optimisticThinkingUntil = 0;
+        reflectGenerating(false);
         showToast(message.reason === "composer-not-found"
           ? "Couldn't find the message box on this page."
           : "The message may not have sent — couldn't confirm it on the page.");
@@ -1947,13 +2101,14 @@
   window.addEventListener("load", () => {
     loadStored();
     loadImageControlPreference();
-    loadProAccessPreference();
+    loadTierPreference();
     renderConversations(conversations, activeConversationId);
     // Initialise reasoning state for the default model before any host sync.
     lastModelLabel = currentModelLabel();
     currentEffortLabel = defaultEffortFor(currentModelEntry());
     toggleOn = defaultToggleFor(currentModelEntry());
     syncEffortControl();
+    syncModelAvailability();
     if (promptLine) promptLine.focus({ preventScroll: true });
     setupOverscrollHistoryLoader();
     setupConversationListLoader();
@@ -1969,8 +2124,13 @@
           applyImageControl(mode);
           lastImageControl = mode;
         }
-        if (changes[CHATGPT_PRO_KEY]) {
-          applyProAccess(changes[CHATGPT_PRO_KEY].newValue === true);
+        if (changes[TIERS_KEY]) {
+          hasExplicitTiers = true;
+          applyTiers(changes[TIERS_KEY].newValue);
+        } else if (changes[LEGACY_CHATGPT_PRO_KEY] && !hasExplicitTiers) {
+          // Defensive path for the legacy boolean flipping on its own: honour it
+          // only while no explicit tier selection has ever been stored.
+          applyTiers({ ...providerTiers, ChatGPT: changes[LEGACY_CHATGPT_PRO_KEY].newValue === true ? "Pro" : "Free" });
         }
       });
     }
